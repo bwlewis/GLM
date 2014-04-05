@@ -1,4 +1,3 @@
-glm_experiments
+Generalized linea models, abridged.
 ===============
 
-Noodling around ways to compute generalized linear models
