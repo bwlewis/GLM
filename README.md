@@ -1,3 +1,3 @@
-Generalized linea models, abridged.
+Generalized linear models, abridged.
 ===============
 
