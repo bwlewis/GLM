@@ -47,7 +47,8 @@ print(data.frame(MLE=coef(MLE), NNLS=NNLS$par))
 # Let's compare bootstrapped estimates to get better a sense of how these two
 # estimation approaches vary...First, let's obtain bootstrapped estimates of
 # the standard MLE solution:
-mleboot = replicate(500,
+set.seed(1)
+mleboot = replicate(1000,
 {
   i = sample(nobs,nobs,replace=TRUE)
   glm.fit(x=x[i,],y=y[i], family=binomial())$coef
@@ -63,7 +64,7 @@ fboot = function(i)
     crossprod(y[i] - lw)[1]
   }
 }
-nnlsboot = replicate(500,
+nnlsboot = replicate(1000,
 {
   i  = sample(nobs,nobs,replace=TRUE)
   f = fboot(i)
