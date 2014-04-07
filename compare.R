@@ -4,7 +4,6 @@
 # estimate with an alternative model computed directly by a nonlinear least
 # squares estimate.
 
-
 # We use the 'Contraception' data set from the mlmRev package in favor of a
 # made-up example. You might need to install the mlmRev package to obtain
 # these data. We mostly follow the very concise introduction to generalized
@@ -26,8 +25,8 @@ print(summary(MLE))
 # Let's compare the maximum likelihood estimate with a generic nonlinear
 # least squares solution...
 # Extract the response y and model matrix x from the MLE model object.
-x = M$x
-y = M$y
+x = MLE$x
+y = MLE$y
 logistic = function(x) 1/(1 + exp(-x))
 f = function(beta)
 {
@@ -45,17 +44,16 @@ print(data.frame(MLE=coef(MLE), NNLS=NNLS$par))
 
 
 
-# Let's compare bootstrapped estimates to get a sense of how
-# these two approaches vary.
-
-t1 = proc.time()
+# Let's compare bootstrapped estimates to get better a sense of how these two
+# estimation approaches vary...First, let's obtain bootstrapped estimates of
+# the standard MLE solution:
 mleboot = replicate(500,
 {
   i = sample(nobs,nobs,replace=TRUE)
   glm.fit(x=x[i,],y=y[i], family=binomial())$coef
 })
-print(proc.time()-t1)
 
+# And now with the nonlinear least squares solution:
 fboot = function(i)
 {
   function(beta)
@@ -65,20 +63,21 @@ fboot = function(i)
     crossprod(y[i] - lw)[1]
   }
 }
-t1 = proc.time()
 nnlsboot = replicate(500,
 {
   i  = sample(nobs,nobs,replace=TRUE)
   f = fboot(i)
   optim(rep(0,ncol(x)), fn=f, method="BFGS")$par
 })
-print(proc.time()-t1)
 
-dev.off()
+# Let's compare histograms of one of the more significant model variables in
+# this problem, the square of age:
+jpeg(file="compare.jpg",quality=100,width=800,height=800)
 split.screen(c(2,1))
 xrange = c(min(min(mleboot[3,]),min(nnlsboot[3,])),
            max(max(mleboot[3,]),max(nnlsboot[3,])))
 screen(1)
-hist(mleboot[3,],main="Maximum likelihood estimate",col=4,xlim=xrange,breaks=25)
+hist(mleboot[3,],main="age^2 maximum likelihood estimate",col=4,xlim=xrange,breaks=25)
 screen(2)
-hist(nnlsboot[3,],main="Direct nonlinear optimization",col=4,xlim=xrange,breaks=25)
+hist(nnlsboot[3,],main="age^2 direct nonlinear optimization",col=4,xlim=xrange,breaks=25)
+dev.off()
