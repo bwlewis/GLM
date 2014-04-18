@@ -41,7 +41,9 @@ names(NNLS$par) = colnames(x)
 # somewhat different.
 print(data.frame(MLE=coef(MLE), NNLS=NNLS$par))
 
-
+# Note that the residual norm will always be smaller for the NNLS estimate
+# because that's what that approach minimizes. Also note that the MLE approach
+# arrives at an estimate *much* faster.
 
 
 # Let's compare bootstrapped estimates to get better a sense of how these two
