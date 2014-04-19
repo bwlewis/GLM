@@ -128,20 +128,82 @@ to at least be constrained in the interval $[0,1]$.
 <li> $b$ might represent counts and we desire the predictor to be nonnegative since
 negative counts might not make any sense.
 </ul>
-We'll see that these examples correspond to the logistic and Poisson GLMs,
-respectively, in a little bit.
+A standard approach to solving the constrained problem is to transform it into
+an unconstrained one by way of a <i>link function</i>. The link function is
+chosen to map the real line into the constraint interval.
+For example, the logistic function
+\[
+g(a) = \frac{1}{1 + \exp(-a)}
+\]
+transforms arbitrary values in $a\in\mathbb{R}$ into the interval $(0,1)$ (if $a$
+is a vector, we apply the logistic function elementwise to its values).
 
 <p>
+Consider the binary 0/1 data example cited above.  Let
+$A\in\mathbb{R}^{m\times n}$ be a given model matrix, and let
+$b\in\mathbb{R}^m$ be a given response vector. The generalized linear model
+problem is to compute an $x$ that satisfies:
+\[
+Ax = b + \epsilon,\qquad \mathrm{such\, that}\,\, Ax\in[0,1].
+\]
+We can use the logistic function to formulate a related unconstrained problem
+that solves for $x$ in
+\[
+g(Ax) = b + \epsilon,
+\]
+where $g$ is the logistic function applied elementwise to $Ax$. The problem
+is no longer constrained because $g$ maps any value into the interval $(0,1)$.
+But it's no longer linear either! How might we solve such a problem? Similarly
+to the basic linear model presented earlier, one natural idea is to use least
+squares.
 
-Let's develop the GLM idea by considering the first example above: Given
-$A\in\mathbb{R}^{m\times n}$, and $b\in\mathbb{R}^m$, solve the linear model
-$Ax = b + \epsilon$ for $x$, but constrain $x$ so that $Ax \in [0,1]$.
+<h2>Nonlinear least squares</h2>
+
+Let's quickly recap ideas:
+<ul>
+<li> The generalized linear model problem is similar to an ordinary linear model problem, but
+with constraints on the predictor $Ax$.
+<li> We can use a link function to transform a GLM into an unconstrained problem, but...
+<li> the resulting unconstrained problem is nonlinear.
+</ul>
+We can try to use nonlinear least squares to solve the transformed GLM problem
+just like we used ordinary least squares to sove
+the linear model problem. Consider the binary 0/1 data example in the last section, where
+the function $g$ is the logistic function.
+Let's cook up a nonlinear least sqaures method to solve
+\[
+\min_x ||g(Ax) - b||^2.
+\]
+We warn you right now that the nonlinear least squares solution turns
+out to <i>not</i> be the most efficient way to solve GLMs. Feel free to skip on
+down to the maximum likelihood methods below. But this technique is just so
+obvious, and we have found GLMs so rarely discussed in this way elsewhere, that
+we feel compelled to explore this solution method.
 
 <p>
-A standard approach to this constrained problem is to transform it into an
-unconstrained one by way of a <i>link function</i>.
+The following R function solves the GLM problem by direct application of a
+nonlinear least squares solver to the link function-transformed problem. We use
+R's <tt>optim</tt> optimization function using Broyden's method (a quasi-Newton
+solver&mdash;most nonlinear solvers are variations on Newton or secant
+methods).
 
+For example, when <tt>g=binomial()$linkinv</tt> (the logistic function), this
+roughly corresponds to logistic regression using R's <tt>glm</tt> function.
+They solve for slightly different estimates and the two solutions are not
+typically identical. Later we will compare solutions in a more systematic way.
 
+<pre>
+# Input: A is an m by n model matrix, b a response vector of length m,
+#        g is the link function (for example g=binomial()$linkinv  for logistic).
+# Output: The model coefficients x.
+
+nnls_glm <- function(A,b,g)
+{
+  f <- function(x) crossprod(b - g(A %*% x))[]
+  optim(rep(0,ncol(A)), fn=f, method="BFGS")$par
+}
+</pre>
+It's an amazingly short function!
 
 
 </section>
@@ -151,7 +213,7 @@ unconstrained one by way of a <i>link function</i>.
 
 <ol>
 <li> Bj&ouml;rck, &Aring;.,  Numerical Methods for Least Squares Problems, SIAM, Philadelphia, 1996.
-<li> Gauss, C. F., Theoria combinationis observationum erroribus minimis obnoxiae, pars prior, 1821.
+<li> Gauss, C. F., Theoria combinationis observationum erroribus minimis obnoxiae, Pars prior, 1863 (1st written 1821).
 <li> Hastie, T. J. and Pregibon, D., Generalized linear models,
      Chapter 6 of Statistical Models in S, eds J. M. Chambers and T.
      J. Hastie, Wadsworth &amp; Brooks/Cole, 1992.
