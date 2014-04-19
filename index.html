@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Glm by bwlewis</title>
+    <title>GLM, abridged</title>
 
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
@@ -14,29 +14,163 @@
   </head>
   <body>
     <div class="wrapper">
-      <header>
-        <h1>Glm</h1>
-        <p>Fooling around with ways to estimate generalized linear models</p>
+<section>
+<h1>
+<a name="generalized-linear-models-abridged" class="anchor" href="#generalized-linear-models-abridged"><span class="octicon octicon-link"></span></a>Generalized linear models, abridged.
+</h1>
+<p class="view"><a href="https://github.com/bwlewis/GLM">View the Project on GitHub &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  bwlewis/GLM</a></p>
+<a href="mailto:blewis@illposed.net">Bryan W. Lewis</a> and <a href="mailto:michael.kane@yale.edu">Mike Kane</a>
+</section>
+<section>
 
-        <p class="view"><a href="https://github.com/bwlewis/GLM">View the Project on GitHub <small>bwlewis/GLM</small></a></p>
+<h2>Introduction</h2>
+
+Generalized linear models (GLMs) are indespensible tools in the data
+science toolbox. They are very adaptable to many real-world settings for
+continuous, yes/no, count and survival data. The models themselves are
+intuitive and their results are usually very interpretable and can be used in
+inference and prediction.  A few very high quality free and open source sofware
+implementations are available (in particular R[6]), as are several very good
+commercial ones (Revolution Analytics, SAS, Stata).
+
+<p>
+Despite the wide applicability of GLMs and the availability of high-quality
+reference implementations, we've found it hard to find good, easy to use
+high-performance open souce software implementations geard to solving large
+problems.  To our knowledge as of early 2014 Revolution Analytics[7] provides
+the best and by far the highest-performance GLM implementation, but it's
+commercial (not that there's anything wrong with that, indeed we encourage
+folks to use Revo's kit because it's seriously good).  Moreover, we've had
+trouble finding succinct references that deal with the core GLM ideas and
+implementation details that could help us build our own high-performance
+implementations.
+
+<p>
+Our goal is to present the core ideas behind GLMs correctly, but also as simply
+as we can. We present basic implementations, some of which solve GLMs in just a
+few lines of code.  We discuss implementation details that enable the
+development of effective distributed parallel implementations suitable for
+solution of large-scale problems.
+
+<p>
+We devlop our ideas in our favorite language, R, but they are equally
+applicable to other languages (we are also fans of Boost and Python).
+
+<h2>Disclaimer</h2>
+
+This is <i>not</i> a formal introduction to GLMs.  We focus on illuminating
+just a few key ideas, mostly from a numerical point of view and often focusing
+on performance and scalability. We refer the reader to our references [3,5,8]
+for more complete introductions to GLMs.
+
+<h2>Linear models</h2>
+
+We begin by defining what we mean when we say "linear model" before moving on
+to GLMs. Our presentation and notation generally follow Bj&ouml;rk[1],
+including the following definition of expected value and variance. Let $y$ be
+a random variable with distribution function $F(y)$. The expected value $\mu$ and
+the variance $\sigma^2$ of $y$ are defined:
+\[
+E(y) = \mu = \int_{-\infty}^{\infty} ydF(y),
+\qquad \sigma^2 = \int_{-\infty}^{\infty}(y-\mu)^2dF(y).
+\]
+When $y$ is a vector of random variables, we write $E(y)$ to mean the expected
+value of each entry, and similarly we define the expected value of a matrix of
+random variables to be the expected value of each entry.  Define the
+variance-covariance matrix of a vector of random variables $y$ with mean vector
+$\mu$ to be
+\[
+V(y) = E(yy^T) - \mu \mu^T.
+\]
+
+Let $b\in\mathbb{R}^m$ be a vector of measurements (often called a response
+vector) and let $A\in\mathbb{R}^{m\times n}$, $\mathrm{rank}(A)=n$, be a matrix
+formed from data observations (called the model matrix).  Then
+\[
+Ax = b + \epsilon
+\]
+is what we mean when we say "linear model," where $x\in\mathbb{R}^n$ is a
+vector of model coefficients and $E(\epsilon)=0$ and $V(\epsilon)=\sigma^2 I$.
+That is, the residual error term $\epsilon$ consists of uncorrelated random
+variables with zero mean and the same variance. Given a vector of model
+coefficients, we call the product $Ax$ a predictor of the response
+vector $b$.
+
+<p>
+There are many possible ways to think about solving for a vector of model
+coefficients $x$. We describe a particularly natural one next.
 
 
-        <ul>
-          <li><a href="https://github.com/bwlewis/GLM/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/bwlewis/GLM/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/bwlewis/GLM">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
-        <h1>
-<a name="generalized-linear-models-abridged" class="anchor" href="#generalized-linear-models-abridged"><span class="octicon octicon-link"></span></a>Generalized linear models, abridged.</h1>
-      </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/bwlewis">bwlewis</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
-    </div>
-    <script src="javascripts/scale.fix.js"></script>
-    
-  </body>
+<h2>Least squares</h2>
+
+Note that our condition on the model matrix that $\mathrm{rank}(A)=n$ means
+that the number of columns must not exceed the number of rows. One idea we
+might think of for solving for the model coefficients would be to compute
+the ordinary least squares solution $x$ that minimizes
+\[
+||Ax - b||^2 = ||\epsilon||^2,
+\]
+where $||\cdot||$ indicates Euclidean norm. It turns out that the least squares
+solution of linear models has important statistical properties shown in the
+seminal work of Gauss[2] and later rediscovered by Markoff[4]. (The least
+squares solution defines a <i>minimum variance unbiased estimator</i>, the
+technical details of which we defer to the references.)
+
+
+<h2>Generalized linear models</h2>
+
+Generalized linear models
+arise when we constrain the values that the predictor $Ax$ can take on. Such
+constraints are important for many practical problems.  For example:
+<ul>
+<li> The response $b$ may represent binary 0/1 data and we desire the predictor $Ax$
+to at least be constrained in the interval $[0,1]$.
+<li> $b$ might represent counts and we desire the predictor to be nonnegative since
+negative counts might not make any sense.
+</ul>
+We'll see that these examples correspond to the logistic and Poisson GLMs,
+respectively, in a little bit.
+
+<p>
+
+Let's develop the GLM idea by considering the first example above: Given
+$A\in\mathbb{R}^{m\times n}$, and $b\in\mathbb{R}^m$, solve the linear model
+$Ax = b + \epsilon$ for $x$, but constrain $x$ so that $Ax \in [0,1]$.
+
+<p>
+A standard approach to this constrained problem is to transform it into an
+unconstrained one by way of a <i>link function</i>.
+
+
+
+
+</section>
+
+<section>
+<h2>References</h2>
+
+<ol>
+<li> Bj&ouml;rck, &Aring;.,  Numerical Methods for Least Squares Problems, SIAM, Philadelphia, 1996.
+<li> Gauss, C. F., Theoria combinationis observationum erroribus minimis obnoxiae, pars prior, 1821.
+<li> Hastie, T. J. and Pregibon, D., Generalized linear models,
+     Chapter 6 of Statistical Models in S, eds J. M. Chambers and T.
+     J. Hastie, Wadsworth &amp; Brooks/Cole, 1992.
+<li> Markoff, A., Wahrscheinlichheitsrechnug,  Leipzig, 1912.
+<li> McCullagh P. and Nelder, J. A., Generalized Linear Models, Chapman and Hall, London 1989.
+<li> The R project <a href="http://www.r-project.org">http://www.r-project.org</a>.
+<li> Revolution Analytics <a href="http://revolutionanalytics.com">http://revolutionanalytics.com</a>.
+<li> Zelen, M., Linear estimation and relted topics, in Survey of Numerical Analysis, Todd. J. ed, McGraw-Hill, New York, 1962, pp. 429-441.
+</ol>
+</secion>
+</div>
+
+<script src="javascripts/scale.fix.js"></script>
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+</script>
+<script type="text/javascript"
+  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+</body>
 </html>
