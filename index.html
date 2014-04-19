@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>GLM, abridged</title>
+    <title>GLMs, abridged</title>
 
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
@@ -18,43 +18,42 @@
 <h1>
 <a name="generalized-linear-models-abridged" class="anchor" href="#generalized-linear-models-abridged"><span class="octicon octicon-link"></span></a>Generalized linear models, abridged.
 </h1>
-<p class="view"><a href="https://github.com/bwlewis/GLM">View the Project on GitHub &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  bwlewis/GLM</a></p>
+<p class="view"><a href="https://github.com/bwlewis/GLM">View the Project on GitHub &nbsp;&nbsp;  bwlewis/GLM</a></p>
 <a href="mailto:blewis@illposed.net">Bryan W. Lewis</a> and <a href="mailto:michael.kane@yale.edu">Mike Kane</a>
 </section>
 <section>
 
 <h2>Introduction</h2>
 
-Generalized linear models (GLMs) are indespensible tools in the data
-science toolbox. They are very adaptable to many real-world settings for
-continuous, yes/no, count and survival data. The models themselves are
-intuitive and their results are usually very interpretable and can be used in
-inference and prediction.  A few very high quality free and open source sofware
-implementations are available (in particular R[6]), as are several very good
-commercial ones (Revolution Analytics, SAS, Stata).
+Generalized linear models (GLMs) are indespensible tools in the data science
+toolbox. They are applicable to many real-world problems involving continuous,
+yes/no, count and survival data. The models themselves are intuitive and can be
+used for inference and prediction.  A few very high quality free and open
+source sofware implementations are available (in particular in R[6]), as are
+several very good commercial ones (Revolution Analytics[7], SAS, Stata).
 
 <p>
+<br/>
 Despite the wide applicability of GLMs and the availability of high-quality
-reference implementations, we've found it hard to find good, easy to use
-high-performance open souce software implementations geard to solving large
-problems.  To our knowledge as of early 2014 Revolution Analytics[7] provides
-the best and by far the highest-performance GLM implementation, but it's
-commercial (not that there's anything wrong with that, indeed we encourage
-folks to use Revo's kit because it's seriously good).  Moreover, we've had
-trouble finding succinct references that deal with the core GLM ideas and
-implementation details that could help us build our own high-performance
-implementations.
+reference implementations, we've found it hard to find good high-performance
+free and open souce software implementations geard to solving large problems.
+Moreover, we've had trouble finding succinct references that deal with the core
+GLM ideas and implementation details that could help us build our own
+high-performance implementations.
 
 <p>
-Our goal is to present the core ideas behind GLMs correctly, but also as simply
-as we can. We present basic implementations, some of which solve GLMs in just a
-few lines of code.  We discuss implementation details that enable the
-development of effective distributed parallel implementations suitable for
-solution of large-scale problems.
+
+Our goal for this note is to present the core ideas behind GLMs correctly, but
+also as simply as we can. We present basic implementations, some of which solve
+GLMs in just a few lines of code.  We discuss implementation details that
+enable the development of effective distributed parallel implementations
+suitable for solution of large-scale problems.
 
 <p>
-We devlop our ideas in our favorite language, R, but they are equally
-applicable to other languages (we are also fans of Boost and Python).
+
+We devlop our ideas in our favorite language, R, but they are easily adapted to
+other languages.  Python and Boost/C++ are particularly well-equipped for good
+GLM implementations in our opinion.
 
 <h2>Disclaimer</h2>
 
@@ -75,10 +74,10 @@ E(y) = \mu = \int_{-\infty}^{\infty} ydF(y),
 \qquad \sigma^2 = \int_{-\infty}^{\infty}(y-\mu)^2dF(y).
 \]
 When $y$ is a vector of random variables, we write $E(y)$ to mean the expected
-value of each entry, and similarly we define the expected value of a matrix of
-random variables to be the expected value of each entry.  Define the
-variance-covariance matrix of a vector of random variables $y$ with mean vector
-$\mu$ to be
+value applied pointwise to each entry, and similarly we define the expected
+value of a matrix of random variables to be the expected value of each entry.
+Define the variance-covariance matrix of a vector of random variables $y$ with
+vector of expected values $\mu$ to be
 \[
 V(y) = E(yy^T) - \mu \mu^T.
 \]
@@ -92,13 +91,15 @@ Ax = b + \epsilon
 is what we mean when we say "linear model," where $x\in\mathbb{R}^n$ is a
 vector of model coefficients and $E(\epsilon)=0$ and $V(\epsilon)=\sigma^2 I$.
 That is, the residual error term $\epsilon$ consists of uncorrelated random
-variables with zero mean and the same variance. Given a vector of model
+variables with zero mean and the same variance. Given a vector $x$ of model
 coefficients, we call the product $Ax$ a predictor of the response
 vector $b$.
 
-<p>
-There are many possible ways to think about solving for a vector of model
-coefficients $x$. We describe a particularly natural one next.
+<p><br/>
+
+Given a model matrix $A$ and response vector $b$, there are many ways we might
+go about solving for a vector of model coefficients $x$. We describe a
+particularly natural one next.
 
 
 <h2>Least squares</h2>
@@ -107,7 +108,7 @@ One idea we
 might think of for solving for the model coefficients would be to compute
 the ordinary least squares solution $x$ that minimizes
 \[
-\min_x ||Ax - b||^2 = ||\epsilon||^2,
+\min_x ||Ax - b||^2,
 \]
 where $||\cdot||$ indicates Euclidean norm. Note that the conditions that
 $\mathrm{rank}(A)=n$ and $b\ne 0$ imply that there exists a unique least
@@ -124,27 +125,27 @@ arise when we constrain the values that the predictor $Ax$ can take on. Such
 constraints are important for many practical problems.  For example:
 <ul>
 <li> The response $b$ may represent binary 0/1 data and we desire the predictor $Ax$
-to at least be constrained in the interval $[0,1]$.
+to at least be constrained in the interval $(0,1)$.
 <li> $b$ might represent counts and we desire the predictor to be nonnegative since
 negative counts might not make any sense.
 </ul>
 A standard approach to solving the constrained problem is to transform it into
-an unconstrained one by way of a <i>link function</i>. The link function is
-chosen to map the real line into the constraint interval.
+an unconstrained one by way of a <i>link function</i>. A link function is a
+bijection chosen to map the constraint interval onto the real line (the
+inverse link function maps the real line onto the constraint interval).
 For example, the logistic function
 \[
 g(a) = \frac{1}{1 + \exp(-a)}
 \]
-transforms arbitrary values in $a\in\mathbb{R}$ into the interval $(0,1)$ (if $a$
-is a vector, we apply the logistic function elementwise to its values).
+transforms arbitrary values in $a\in\mathbb{R}$ onto the interval $(0,1)$.
 
-<p>
+<p><br/>
 Consider the binary 0/1 data example cited above.  Let
-$A\in\mathbb{R}^{m\times n}$ be a given model matrix, and let
-$b\in\mathbb{R}^m$ be a given response vector. The generalized linear model
+$A\in\mathbb{R}^{m\times n}$ be a given model matrix with $\mathrm{rank}(A)=n$, and let
+$b\in\mathbb{R}^m$, $b\ne 0$, be a given response vector. The generalized linear model
 problem is to compute an $x$ that satisfies:
 \[
-Ax = b + \epsilon,\qquad \mathrm{such\, that}\,\, Ax\in[0,1].
+Ax = b + \epsilon,\qquad \mathrm{such\, that}\,\, Ax\in(0,1).
 \]
 We can formulate a related unconstrained problem
 that solves for $x$ in
@@ -189,8 +190,7 @@ methods).
 
 For example, when <tt>g=binomial()$linkinv</tt> (the logistic function), this
 roughly corresponds to logistic regression using R's <tt>glm</tt> function.
-They solve for slightly different estimates and the two solutions are not
-typically identical. Later we will compare solutions in a more systematic way.
+Later we will compare the two solutions in a systematic way.
 
 <pre>
 # Input: A is an m by n model matrix, b a response vector of length m,

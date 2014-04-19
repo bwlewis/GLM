@@ -2,7 +2,7 @@
 
 body {
   padding:20px;
-  font-size:18px;
+  font-size:20px;
   font-family:New Century Schoolbook, serif;
   color:#111;
   font-weight:300;
@@ -10,7 +10,7 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   color:#222;
-  margin: 20px 0 10px 0;
+  margin: 20px 0 20px 0;
 }
 
 p, ul, ol, table, pre, dl {
@@ -61,7 +61,7 @@ blockquote {
 code, pre {
   font-family:Monaco, Bitstream Vera Sans Mono, Lucida Console, Terminal;
   color:#222;
-  font-size:16px;
+  font-size:18px;
 }
 
 pre {
