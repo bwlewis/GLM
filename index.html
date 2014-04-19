@@ -60,7 +60,7 @@ applicable to other languages (we are also fans of Boost and Python).
 
 This is <i>not</i> a formal introduction to GLMs.  We focus on illuminating
 just a few key ideas, mostly from a numerical point of view and often focusing
-on performance and scalability. We refer the reader to our references [3,5,8]
+on performance and scalability. We refer the reader to the references [3,5,8]
 for more complete introductions to GLMs.
 
 <h2>Linear models</h2>
@@ -83,7 +83,7 @@ $\mu$ to be
 V(y) = E(yy^T) - \mu \mu^T.
 \]
 
-Let $b\in\mathbb{R}^m$ be a vector of measurements (often called a response
+Let $b\in\mathbb{R}^m, b\ne 0$ be a vector of measurements (called a response
 vector) and let $A\in\mathbb{R}^{m\times n}$, $\mathrm{rank}(A)=n$, be a matrix
 formed from data observations (called the model matrix).  Then
 \[
@@ -103,19 +103,19 @@ coefficients $x$. We describe a particularly natural one next.
 
 <h2>Least squares</h2>
 
-Note that our condition on the model matrix that $\mathrm{rank}(A)=n$ means
-that the number of columns must not exceed the number of rows. One idea we
+One idea we
 might think of for solving for the model coefficients would be to compute
 the ordinary least squares solution $x$ that minimizes
 \[
-||Ax - b||^2 = ||\epsilon||^2,
+\min_x ||Ax - b||^2 = ||\epsilon||^2,
 \]
-where $||\cdot||$ indicates Euclidean norm. It turns out that the least squares
+where $||\cdot||$ indicates Euclidean norm. Note that the conditions that
+$\mathrm{rank}(A)=n$ and $b\ne 0$ imply that there exists a unique least
+squares solution.  It turns out that the least squares
 solution of linear models has important statistical properties shown in the
 seminal work of Gauss[2] and later rediscovered by Markoff[4]. (The least
 squares solution defines a <i>minimum variance unbiased estimator</i>, the
-technical details of which we defer to the references.)
-
+technical details of which we leave to the references.)
 
 <h2>Generalized linear models</h2>
 
@@ -146,7 +146,7 @@ problem is to compute an $x$ that satisfies:
 \[
 Ax = b + \epsilon,\qquad \mathrm{such\, that}\,\, Ax\in[0,1].
 \]
-We can use the logistic function to formulate a related unconstrained problem
+We can formulate a related unconstrained problem
 that solves for $x$ in
 \[
 g(Ax) = b + \epsilon,
