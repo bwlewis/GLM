@@ -411,6 +411,76 @@ which is just ordinary least squares.
 
 <h2>Footnote: Comparing NNLS and IRLS methods</h2>
 
+Is the simple nonlinear least squares estimate of the generalized linear model
+coefficients really that different from the IRLS/maximum likelihood estimate?
+At least in some cases they can in fact be quite similar.
+
+XXX finish up and clean up the comaprison code below...
+
+
+<pre>
+data("Contraception",package="mlmRev")
+nobs = nrow(Contraception)
+
+# Compute the usual maximum likeliehood estimate.
+MLE = glm(formula = use ~ age + I(age^2) + urban + livch,
+          family = binomial, x=TRUE, data=Contraception)
+
+x = MLE$x   # The model matrix
+y = MLE$y   # The reponse vector
+
+# Compute the NNLS estimate
+logistic = function(x) 1/(1 + exp(-x))
+f = function(beta)
+{
+   w  = x %*% beta
+   lw = logistic(w)
+   crossprod(y - lw)[1]
+}
+NNLS = optim(rep(0,ncol(x)), fn=f, method="BFGS")
+names(NNLS$par) = colnames(x)
+
+# Let's compare bootstrapped estimates to get better a sense of how these two
+# estimation approaches vary...First, let's obtain bootstrapped estimates of
+# the standard MLE solution:
+set.seed(1)
+mleboot = replicate(1000,
+{
+  i = sample(nobs,nobs,replace=TRUE)
+  glm.fit(x=x[i,],y=y[i], family=binomial())$coef
+})
+
+# And now with the nonlinear least squares solution:
+fboot = function(i)
+{
+  function(beta)
+  {
+    w  = x[i,] %*% beta
+    lw = logistic(w)
+    crossprod(y[i] - lw)[1]
+  }
+}
+nnlsboot = replicate(1000,
+{
+  i  = sample(nobs,nobs,replace=TRUE)
+  f = fboot(i)
+  optim(rep(0,ncol(x)), fn=f, method="BFGS")$par
+})
+
+# Let's compare histograms of one of the more significant model variables in
+# this problem, the square of age:
+jpeg(file="compare.jpg",quality=100,width=800,height=800)
+split.screen(c(2,1))
+xrange = c(min(min(mleboot[3,]),min(nnlsboot[3,])),
+           max(max(mleboot[3,]),max(nnlsboot[3,])))
+screen(1)
+hist(mleboot[3,],main="age^2 maximum likelihood estimate",col=4,xlim=xrange,breaks=25)
+screen(2)
+hist(nnlsboot[3,],main="age^2 direct nonlinear optimization",col=4,xlim=xrange,breaks=25)
+dev.off()
+</pre>
+<img src="compare.jpg" alt="Comparison of IRLS/MLE and NNLS methods"></img>
+
 </section>
 
 <section>
