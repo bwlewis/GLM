@@ -25,18 +25,18 @@
 
 <h2>Introduction</h2>
 
-Generalized linear models (GLMs) are indespensible tools in the data science
+Generalized linear models (GLMs) are indispensable tools in the data science
 toolbox. They are applicable to many real-world problems involving continuous,
 yes/no, count and survival data. The models themselves are intuitive and can be
 used for inference and prediction.  A few very high quality free and open
-source sofware implementations are available (in particular within R[7]), as are
+source software implementations are available (in particular within R[7]), as are
 several very good commercial ones (Revolution Analytics[8], SAS, Stata).
 
 <p>
 <br/>
 Despite the wide applicability of GLMs and the availability of high-quality
 reference implementations, we've found it hard to find good high-performance
-free and open souce software implementations geard to solving large problems.
+free and open source software implementations geared to solving large problems.
 Moreover, we've had trouble finding succinct references that deal with the core
 GLM ideas and implementation details that could help us build our own
 high-performance implementations.
@@ -52,7 +52,7 @@ problems.
 
 <p>
 
-We devlop our ideas in our favorite language, R, but they are easily adapted to
+We develop our ideas in our favorite language, R, but they are easily adapted to
 other languages.  Python and Boost/C++ are particularly well-equipped for good
 GLM implementations in our opinion.
 
@@ -179,7 +179,7 @@ with constraints on the predictor $Ax$.
 <li> the resulting unconstrained problem is nonlinear.
 </ul>
 We can try to use nonlinear least squares to solve the transformed GLM problem
-just like we used ordinary least squares to sove
+just like we used ordinary least squares to solve
 the linear model problem. Consider the binary 0/1 data example in the last section, where
 the function $g$ is the logistic function.
 Let's cook up a nonlinear least squares method to solve
@@ -262,8 +262,8 @@ You may find it curious that we've formulated generalized linear models so far
 without reference to a specific probability distribution for the residual error
 values in $\epsilon$. (We <i>have</i> so far assumed that $\epsilon$ consists
 of independent and identically distributed random variables.) Equipping
-$\epsilon$ with an assumed specific probabilty distribution enables us to
-estimate the model coefficients using the method of maxiumum likelihood.
+$\epsilon$ with an assumed specific probability distribution enables us to
+estimate the model coefficients using the method of maximum likelihood.
 
 <p>
 
@@ -283,7 +283,7 @@ nonlinear least squares approach discussed in the previous section. But it
 turns out that the maximum likelihood method converges much faster because it
 incorporates information from the assumed distribution into its iterative
 solution method, a variation on a method called iteratively reweighted least
-square. The following aglorithm presents the key steps of this approach.
+square. The following algorithm presents the key steps of this approach.
 
 <h3>Algorithm IRLS: Iteratively reweighted least squares maximum likelihood GLM estimation</h3>
 <h4>Input</h4>
@@ -359,7 +359,7 @@ livch2       0.854904050  0.854904050
 livch3+      0.806025052  0.806025052
 </font>
 </pre>
-The results are the same to displayed accuracy. Our minimalist implementation
+The results agree to displayed accuracy. Our minimalist implementation
 converged after only five iterations in this example.
 
 <h2>IRLS Notes</h2>
@@ -382,7 +382,7 @@ Most implementations compute
 \[
 (A^T W A)^{-1} A^T W z
 \]
-by way of a signular value or rank-revealing QR decomposition of $A$ that detects
+by way of a singular value or rank-revealing QR decomposition of $A$ that detects
 numerically rank-deficient or extremely ill-conditioned problems. When such
 a problem occurs, it can usually be resolved by reducing the number of variables
 in the model.
@@ -427,7 +427,7 @@ it interesting and have rarely seen a discussion on this topic elsewhere in the
 context of GLMs.
 
 <p>
-XXX finish up and clean up the comaprison code below...
+XXX finish up and clean up the comparison code below...
 Consider formalizing how different they can be?
 
 
