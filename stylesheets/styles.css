@@ -89,7 +89,7 @@ strong {
 
 section {
   width:90%;
-  float:right;
+  float:left;
   padding-bottom:5px;
 }
 
@@ -99,7 +99,7 @@ small {
 
 hr {
   border:0;
-  background:#e5e5e5;
+  background:#333;
   height:1px;
   margin:0 0 20px;
 }

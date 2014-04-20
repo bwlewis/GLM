@@ -29,7 +29,7 @@ Generalized linear models (GLMs) are indespensible tools in the data science
 toolbox. They are applicable to many real-world problems involving continuous,
 yes/no, count and survival data. The models themselves are intuitive and can be
 used for inference and prediction.  A few very high quality free and open
-source sofware implementations are available (in particular in R[7]), as are
+source sofware implementations are available (in particular within R[7]), as are
 several very good commercial ones (Revolution Analytics[8], SAS, Stata).
 
 <p>
@@ -43,11 +43,12 @@ high-performance implementations.
 
 <p>
 
-Our goal for this note is to present the core ideas behind GLMs correctly, but
-also as simply as we can. We present basic implementations, some of which solve
-GLMs in just a few lines of code.  We discuss implementation details that
-enable the development of effective distributed parallel implementations
-suitable for solution of large-scale problems.
+Our goal for this note is to present the core ideas behind GLMs correctly and
+also as simply as we can. Focusing on core ideas, we present very basic
+implementations, most of which solve GLMs in just a few lines of code.  We
+discuss implementation details that enable the development of effective
+distributed parallel implementations suitable for solution of large-scale
+problems.
 
 <p>
 
@@ -98,12 +99,12 @@ variables with zero mean and the same variance. Let's just get phrase out of
 the way and assume that the residual error in our models consists of
 independent and identically distributed random variables.
 -->
-where $x\in\mathbb{R}^n$ is a vector of model coefficients and the residual
-error term $\epsilon\in\mathbb{R}^m$ consists of independent and identically
-distributed random variables.  Given a vector $x$ of model coefficients, we
-call the product $Ax$ a predictor of the response vector $b$. We're leaving
-important definitions of "random variable" and "independent and identically
-distributed" to the references.
+where $x\in\mathbb{R}^n$ is a vector of model coefficients and the entries of
+the residual error term $\epsilon\in\mathbb{R}^m$ are independent and
+identically distributed random variables.  Given a vector $x$ of model
+coefficients, we call the product $Ax$ a predictor of the response vector $b$.
+We're leaving important definitions of "random variable" and "independent and
+identically distributed" to the references.
 
 <p><br/>
 
@@ -135,7 +136,7 @@ arise when we constrain the values that the predictor $Ax$ can take on. Such
 constraints are important for many practical problems.  For example:
 <ul>
 <li> The response $b$ may represent binary 0/1 data and we want the predictor $Ax$
-to at least be constrained in the interval $[0,1]$
+to at least be constrained to the interval $[0,1]$
 <li> $b$ might represent counts and we desire the predictor to be nonnegative since
 negative counts might not make any sense.
 </ul>
@@ -147,7 +148,7 @@ For example, the logistic function
 \[
 g(a) = \frac{1}{1 + \exp(-a)}
 \]
-transforms arbitrary values in $a\in\mathbb{R}$ onto the interval $(0,1)$.
+maps arbitrary values $a\in\mathbb{R}$ into the interval $(0,1)$.
 
 <p><br/>
 Consider the binary 0/1 data example cited above.  Let
@@ -163,7 +164,7 @@ that solves for $x$ in
 g(Ax) = b + \epsilon,
 \]
 where $g$ is the logistic function applied elementwise to $Ax$. The problem
-is no longer constrained because $g$ maps any value onto the interval $(0,1)$.
+is no longer constrained because $g$ maps any value to the interval $(0,1)$.
 But it's no longer linear either! How might we solve such a problem? Similarly
 to the basic linear model presented earlier, one natural idea is to use least
 squares.
@@ -278,36 +279,38 @@ details of the method, we refer the reader to them for specifics.
 <p>
 
 Maximization of a nonlinear likelihood function sounds a lot like the basic
-nonlinear least squares approach discussed in the last section. But it turns
-out that the maximum likelihood method converges much faster because it
+nonlinear least squares approach discussed in the previous section. But it
+turns out that the maximum likelihood method converges much faster because it
 incorporates information from the assumed distribution into its iterative
 solution method, a variation on a method called iteratively reweighted least
-square. The following aglorithm defines the core method.
+square. The following aglorithm presents the key steps of this approach.
 
-<h3>Iteratively reweighted least squares algorithm for maximum likelihood GLM estimation</h3>
+<h3>Algorithm IRLS: Iteratively reweighted least squares maximum likelihood GLM estimation</h3>
 <h4>Input</h4>
 Model matrix $A\in\mathbb{R}^{m\times n}$,
 response vector $b\in\mathbb{R}^m$,
 inverse link function $g$ and its derivative $g'$,
-probability distribution function of $\epsilon$ and its variance $\mathrm{var}$,
+the variance $\mathrm{var}$ as a function of the mean associated with the distribution function of $\epsilon$,
 termination tolerance $\mathrm{tol}$, maximum number of iterations itmax.
 Note that "$/$" indicates element-wise division and the inverse link function $g$ and
-its derivative are applied element-wise to their vector arguments.
-<h4>Algorithm</h4>
+its derivative and $\mathrm{var}$ are applied element-wise to their vector arguments.
+<p>
 <ol style="list-style:none">
-<li> Let $x_1=0$.
+<li style="margin: 0 0 10px 0;"> Let $x_1=0$.
 <li> For $j=1,2,\ldots,\mathrm{itmax}$, do:
 <ol style="list-style:none;">
   <li style="margin: 0 0 10px 0;"> Let $\eta = Ax_j$.
   <li style="margin: 0 0 10px 0;"> Let $z = \eta + \frac{b - g(\eta)}{g'(\eta)},\qquad$
   <li style="margin: 0 0 10px 0;"> Let $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta)))$.
   <li style="margin: 0 0 10px 0;"> Let $x_{j+1} = x_j + (A^T W A)^{-1} A^T W z$.
-  <li> Stop if $||x_{j+1} - x_j|| \le \mathrm{tol}$.
+  <li> Stop if $||x_{j+1} - x_j|| \lt \mathrm{tol}$.
 </ol>
 </ol>
+<hr>
 It's remarkable how rapidly this simple algorithm converges. Before we dive in to
 some specific details, let's look at an R implementation of this algorithm and
 compare it to R's <tt>glm</tt> function.
+<p>
 <pre>
 minimalist_glm =
 function(A, b, family=binomial, maxit=25, tol=1e-08)
@@ -329,9 +332,9 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
   list(coefficients=x,iterations=j)
 }
 </pre>
-
-We use the same example that we used to compare the nonnegative least squares
-method to R's <tt>glm</tt> function:
+Let's compare our minimalist estimator to R's <tt>glm</tt> function using the
+same example that we used to compare the nonnegative least squares method:
+<p>
 <pre>
 data("Contraception",package="mlmRev")
 
@@ -358,6 +361,51 @@ livch3+      0.806025052  0.806025052
 </pre>
 The results are the same to displayed accuracy. Our minimalist implementation
 converged after only five iterations in this example.
+
+<h2>IRLS Details</h2>
+
+Looking at algorithm IRLS, a few potential issues are apparent. What if
+$g'(\eta) \approx 0$ at some point? Or similarly, what if
+$\mathrm{var}(g(\eta))\approx 0$ or $W$ is such that $A^TWA$ becomes singular
+or extremely ill-conditioned?  Any of these cases lead to break down of our
+simple implementation. In practice for most values of link function and
+variance function ill-conditioning in any of these problem areas leads
+to non-convergence of the method.
+
+<p>
+
+Careful implementations include numeric checks and emit associated warnings as
+the algorithm proceeds. Ill-conditioning of the weighted model matrix is
+perhaps the most serious potential problem because small errors in the response
+vector can lead to huge differences in the solution model coefficients.
+Most implementations compute
+\[
+(A^T W A)^{-1} A^T W z
+\]
+by way of a signular value or rank-revealing QR decomposition of $A$ that detects
+numerically rank-deficient or extremely ill-conditioned problems. When such
+a problem occurs, it can usually be resolved by reducing the number of variables
+in the model.
+
+
+<p>
+
+Note that when the link function is the identity function and the error
+distribution function of $\epsilon$ is Gaussian with mean zero and variance
+one, then algorithm IRLS becomes:
+
+<ol style="list-style:none">
+<li style="margin: 0 0 10px 0;"> $x_1=0$
+<li style="margin: 0 0 10px 0;"> $\eta = Ax_1 = 0$
+<li style="margin: 0 0 10px 0;"> $z = \eta + \frac{b - g(\eta)}{g'(\eta)} = \frac{b - 0}{1} = b$
+<li style="margin: 0 0 10px 0;"> $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta))) = \mathrm{diag}(1^2 /1)= I$
+<li style="margin: 0 0 10px 0;"> $x_{2} = 0 + (A^T A)^{-1} A^T b$,
+</ol>
+
+which is just ordinary least squares.
+
+
+
 
 </section>
 
