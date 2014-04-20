@@ -397,12 +397,12 @@ one, then algorithm IRLS becomes:
 <ol style="list-style:none">
 <li style="margin: 0 0 10px 0;"> $x_1=0$
 <li style="margin: 0 0 10px 0;"> $\eta = Ax_1 = 0$
-<li style="margin: 0 0 10px 0;"> $z = \eta + \frac{b - g(\eta)}{g'(\eta)} = \frac{b - 0}{1} = b$
+<li style="margin: 0 0 10px 0;"> $z = \eta + \frac{b - g(\eta)}{g'(\eta)} = 0 + \frac{b - 0}{1} = b$
 <li style="margin: 0 0 10px 0;"> $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta))) = \mathrm{diag}(1^2 /1)= I$
 <li style="margin: 0 0 10px 0;"> $x_{2} = 0 + (A^T A)^{-1} A^T b$,
 </ol>
 
-which is just ordinary least squares.
+which is just the ordinary least squares solution.
 
 <h2>IRLS Performance considerations</h2>
 
