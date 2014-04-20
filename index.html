@@ -207,9 +207,9 @@ roughly corresponds to logistic regression using R's <tt>glm</tt> function.
 #        g is the inverse link function (g=binomial()$linkinv  for logistic).
 # Output: The model coefficients x.
 
-nnls_glm <- function(A,b,g)
+nnls_glm = function(A,b,g)
 {
-  f <- function(x) crossprod(b - g(A %*% x))[]
+  f = function(x) crossprod(b - g(A %*% x))[]
   optim(rep(0,ncol(A)), fn=f, method="BFGS")$par
 }
 </pre>
@@ -406,16 +406,29 @@ which is just the ordinary least squares solution.
 
 <h2>IRLS Performance considerations</h2>
 
+<h2>Solving large GLMs by breaking them up into a series of smaller problems</h2>
+
 <h2>Distributed parallel computation of IRLS</h2>
 
 
 <h2>Footnote: Comparing NNLS and IRLS methods</h2>
 
-Is the simple nonlinear least squares estimate of the generalized linear model
-coefficients really that different from the IRLS/maximum likelihood estimate?
-At least in some cases they can in fact be quite similar.
+Is the simple nonlinear least squares estimate defined earlier of the
+generalized linear model coefficients really that different from the
+IRLS/maximum likelihood estimate?  In fact, generally these approaches produce
+quite similar estimates, even though they optimize different quantities: The
+MLE method maximizes a likelihood function, and the NNLS estimate minimizes the
+norm of the residual error.
 
+<p>
+Remember, the maximum likelihood method converges quickly. We present the
+results for the generic nonlinear optimization problem mostly because we find
+it interesting and have rarely seen a discussion on this topic elsewhere in the
+context of GLMs.
+
+<p>
 XXX finish up and clean up the comaprison code below...
+Consider formalizing how different they can be?
 
 
 <pre>
@@ -426,58 +439,67 @@ nobs = nrow(Contraception)
 MLE = glm(formula = use ~ age + I(age^2) + urban + livch,
           family = binomial, x=TRUE, data=Contraception)
 
-x = MLE$x   # The model matrix
-y = MLE$y   # The reponse vector
+# Here is the standard model summary provided by GLM:
+print(summary(MLE))
 
-# Compute the NNLS estimate
-logistic = function(x) 1/(1 + exp(-x))
-f = function(beta)
-{
-   w  = x %*% beta
-   lw = logistic(w)
-   crossprod(y - lw)[1]
-}
-NNLS = optim(rep(0,ncol(x)), fn=f, method="BFGS")
-names(NNLS$par) = colnames(x)
+<font color="#009">
+Call:
+glm(formula = use ~ age + I(age^2) + urban + livch, family = binomial, 
+    data = Contraception, x = TRUE)
 
-# Let's compare bootstrapped estimates to get better a sense of how these two
-# estimation approaches vary...First, let's obtain bootstrapped estimates of
-# the standard MLE solution:
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-1.4738  -1.0369  -0.6683   1.2401   1.9765  
+
+Coefficients:
+              Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept) -0.9499521  0.1560118  -6.089 1.14e-09 ***
+age          0.0045837  0.0089084   0.515    0.607    
+I(age^2)    -0.0042865  0.0007002  -6.122 9.23e-10 ***
+urbanY       0.7680975  0.1061916   7.233 4.72e-13 ***
+livch1       0.7831128  0.1569096   4.991 6.01e-07 ***
+livch2       0.8549040  0.1783573   4.793 1.64e-06 ***
+livch3+      0.8060251  0.1784817   4.516 6.30e-06 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 2590.9  on 1933  degrees of freedom
+Residual deviance: 2417.7  on 1927  degrees of freedom
+AIC: 2431.7
+
+Number of Fisher Scoring iterations: 4
+</font>
+
+# Let's compare the maximum likelihood estimate with a generic nonlinear
+# least squares solution using the bootstrap to get a better sense of how
+# these two estimation approaches vary.
+
+# Extract the response y and model matrix x from the MLE model object.
+A = MLE$x    # model matrix
+b = MLE$y    # response vector
+
 set.seed(1)
-mleboot = replicate(1000,
+compare_bootstrap = replicate(1000,
 {
   i = sample(nobs,nobs,replace=TRUE)
-  glm.fit(x=x[i,],y=y[i], family=binomial())$coef
+  c(mle=glm.fit(x=A[i,],y=b[i], family=binomial())$coef,
+       nnls=nnls_glm(A[i,], b[i], binomial()$linkinv))
 })
-
-# And now with the nonlinear least squares solution:
-fboot = function(i)
-{
-  function(beta)
-  {
-    w  = x[i,] %*% beta
-    lw = logistic(w)
-    crossprod(y[i] - lw)[1]
-  }
-}
-nnlsboot = replicate(1000,
-{
-  i  = sample(nobs,nobs,replace=TRUE)
-  f = fboot(i)
-  optim(rep(0,ncol(x)), fn=f, method="BFGS")$par
-})
+# (The bootstrap results are returned in a matrix where each column represents
+# a resampled set of estimates. The first 7 rows contain the MLE estimates and
+# the next 7 the NNLS estimates.)
 
 # Let's compare histograms of one of the more significant model variables in
-# this problem, the square of age:
-jpeg(file="compare.jpg",quality=100,width=800,height=800)
+# this problem, the square of age (in the 3rd and 10th rows):
 split.screen(c(2,1))
-xrange = c(min(min(mleboot[3,]),min(nnlsboot[3,])),
-           max(max(mleboot[3,]),max(nnlsboot[3,])))
+xrange = c(min(min(compare_bootstrap[3,]),min(compare_bootstrap[10,])),
+           max(max(compare_bootstrap[3,]),max(compare_bootstrap[10,])))
 screen(1)
-hist(mleboot[3,],main="age^2 maximum likelihood estimate",col=4,xlim=xrange,breaks=25)
+hist(compare_bootstrap[3,],main="age^2 maximum likelihood estimate",col=4,xlim=xrange,breaks=25)
 screen(2)
-hist(nnlsboot[3,],main="age^2 direct nonlinear optimization",col=4,xlim=xrange,breaks=25)
-dev.off()
+hist(compare_bootstrap[10,],main="age^2 direct nonlinear optimization",col=4,xlim=xrange,breaks=25)
 </pre>
 <img src="compare.jpg" alt="Comparison of IRLS/MLE and NNLS methods"></img>
 
