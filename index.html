@@ -136,7 +136,7 @@ arise when we constrain the values that the predictor $Ax$ can take on. Such
 constraints are important for many practical problems.  For example:
 <ul>
 <li> The response $b$ may represent binary 0/1 data and we want the predictor $Ax$
-to at least be constrained to the interval $[0,1]$
+to at least be constrained to the interval $[0,1]$.
 <li> $b$ might represent counts and we desire the predictor to be nonnegative since
 negative counts might not make any sense.
 </ul>
@@ -239,7 +239,6 @@ NNLS = nnls_glm(MLE$x, MLE$y, binomial()$linkinv)
 
 # Compare the model coefficients estimated by each approach:
 print(data.frame(MLE=coef(MLE), NNLS=NNLS))
-
 <font color="#00a">
                      MLE         NNLS
 (Intercept) -0.949952124 -0.905744758
@@ -413,12 +412,12 @@ which is just the ordinary least squares solution.
 
 <h2>Footnote: Comparing NNLS and IRLS methods</h2>
 
-Is the simple nonlinear least squares estimate defined earlier of the
-generalized linear model coefficients really that different from the
-IRLS/maximum likelihood estimate?  In fact, generally these approaches produce
-quite similar estimates, even though they optimize different quantities: The
-MLE method maximizes a likelihood function, and the NNLS estimate minimizes the
-norm of the residual error.
+Is the simple nonlinear least squares estimate of the generalized linear model
+coefficients defined eariler really that different from the IRLS/maximum
+likelihood estimate?  In fact, generally these approaches produce quite similar
+estimates, even though they optimize different quantities: The MLE method
+maximizes a likelihood function, and the NNLS estimate minimizes the norm of
+the residual error.
 
 <p>
 Remember, the maximum likelihood method converges quickly. We present the
