@@ -29,8 +29,8 @@ Generalized linear models (GLMs) are indispensable tools in the data science
 toolbox. They are applicable to many real-world problems involving continuous,
 yes/no, count and survival data. The models themselves are intuitive and can be
 used for inference and prediction.  A few very high quality free and open
-source software implementations are available (in particular within R[7]), as are
-several very good commercial ones (Revolution Analytics[8], SAS, Stata).
+source software implementations are available (in particular within R[9]), as are
+several very good commercial ones (Revolution Analytics[10], SAS, Stata).
 
 <p>
 <br/>
@@ -60,13 +60,17 @@ GLM implementations in our opinion.
 
 This is <i>not</i> a formal introduction to GLMs.  We focus on illuminating
 just a few key ideas, mostly from a numerical point of view and often focusing
-on performance and scalability. We refer the reader to the references [4,6,9]
-for more complete introductions to GLMs.
+on performance and scalability. We refer the reader to the references [3,5,7,11]
+for complete introductions to linear models.
+
+<p>
+
+These are working notes. We'll continue to tweak and revise them.
 
 <h2>Linear models</h2>
 
 We begin by defining what we mean when we say "linear model" before moving on
-to GLMs. Our presentation and notation generally follow Bj&ouml;rk[1].
+to GLMs. Our presentation and notation generally follow Bj&ouml;rk[2].
 <!--
 including the following definition of expected value and variance. Let $y$ be
 a random variable with distribution function $F(y)$. The expected value $\mu$ and
@@ -125,9 +129,9 @@ where $||\cdot||$ indicates Euclidean norm. Note that the conditions that
 $\mathrm{rank}(A)=n$ and $b\ne 0$ imply that there exists a unique least
 squares solution.  It turns out that the least squares
 solution of linear models has important statistical properties shown in the
-seminal work of Gauss[3] and later rediscovered by Markoff[5]. (The least
+seminal work of Gauss[4] and later rediscovered by Markoff[6]. (The least
 squares solution defines a <i>minimum variance unbiased estimator</i>, the
-technical details of which we leave to the references.)
+technical details of which we leave to the references, in particular see [5,7].)
 
 <h2>Generalized linear models</h2>
 
@@ -220,10 +224,10 @@ It's an amazingly short function!
 Let's at least check the plausibility of this method on a real world problem,
 comparing the result with R's <tt>glm</tt> function.
 We use the 'Contraception' data
-set from the <tt>mlmRev</tt> R package in favor of a made-up example. You might
+set from the <tt>mlmRev</tt> R package rather than a made-up example. You might
 need to install the package with <tt>install.packages("mlmRev")</tt> to obtain
 these data.  Our examples mostly follow the beautifully concise note on
-generalized linear models by Doug Bates[2], which you should read!
+generalized linear models by Doug Bates[3], which you should read!
 
 <pre>
 data("Contraception",package="mlmRev")
@@ -272,7 +276,7 @@ joint distribution of the random variables in $\epsilon$. The value of the
 likelihood function represents the an estimate of how likely the parameters are
 given the data. (If this sounds Bayesian, it is!) One proceeds to then maximize
 the likelihood function or equivalently its logarithm, which is simpler in
-practice to deal with. <i>Many</i> references (especially [6]) cover the
+practice to deal with. <i>Many</i> references (especially [7]) cover the
 details of the method, we refer the reader to them for specifics.
 
 <p>
@@ -307,8 +311,11 @@ its derivative and $\mathrm{var}$ are applied element-wise to their vector argum
 </ol>
 <hr>
 It's remarkable how rapidly this simple algorithm converges. Before we dive in to
-some specific details, let's look at an R implementation of this algorithm and
-compare it to R's <tt>glm</tt> function.
+details, let's look at an R implementation of this algorithm and
+compare it to R's <tt>glm</tt> function. Below you will find a minimalist GLM function
+(closer to R's <tt>glm.fit</tt>, really)
+that takes as input a model matrix $A$, a response vector $b$, an R distribution family
+object, and optional maximum number of iterations and tolerance values.
 <p>
 <pre>
 minimalist_glm =
@@ -346,7 +353,6 @@ MLE = glm(formula = use ~ age + I(age^2) + urban + livch,
 mini = minimalist_glm(MLE$x, MLE$y, family=binomial)
 
 print(data.frame(MLE=coef(MLE), minimalist=coef(mini)))
-
 <font color="#00a">
                      MLE   minimalist
 (Intercept) -0.949952124 -0.949952124
@@ -363,35 +369,63 @@ converged after only five iterations in this example.
 
 <h2>IRLS Notes</h2>
 
-Looking at algorithm IRLS, a few potential issues are apparent. What if
-$g'(\eta) \approx 0$ at some point? Or similarly, what if
-$\mathrm{var}(g(\eta))\approx 0$ or $W$ is such that $A^TWA$ becomes singular
-or extremely ill-conditioned?  Any of these cases lead to break down of our
-simple implementation. In practice for most values of link function and
-variance function ill-conditioning in any of these problem areas leads
-to non-convergence of the method.
-
-<p>
-
-Careful implementations include numeric checks and emit associated warnings as
-the algorithm proceeds. Ill-conditioning of the weighted model matrix is
-perhaps the most serious potential problem because small errors in the response
-vector can lead to huge differences in the solution model coefficients.
-Most implementations compute
+IRLS solves a weighted least squares problem in each iteration because
+after all,
 \[
 (A^T W A)^{-1} A^T W z
 \]
-by way of a singular value or rank-revealing QR decomposition of $A$ that detects
-numerically rank-deficient or extremely ill-conditioned problems. When such
-a problem occurs, it can usually be resolved by reducing the number of variables
-in the model.
-
+is the solution to the least squares problem:
+\[
+\min_x||W^{1/2}(Ax - b)||^2,
+\]
+so long as the diagonal weight matrix $W$ consists of positive entries along
+the diagonal.  We make this a requirement of IRLS. Looking at how the weight
+matrix $W$ is defined above, we see that this means that the derivative of the
+inverse link function $g'$ applied to $Ax_j$ must never vanish. Note that
+in the logistic regression case $g'(a) = g(a)(1-g(a))$ is <i>never</i> zero.
 
 <p>
 
+Clearly, some other problems can arise.  What if $g'(\eta) \approx 0$ at some
+point? Or similarly, what if $\mathrm{var}(g(\eta))\approx 0$ or $W$ is such
+that $A^TWA$ becomes extremely ill-conditioned?  A more subtle problem occurs
+when the maximum ratio of any two entries along the diagonal of $W$ is a big
+number.  Such problems are called <i>stiff</i> and bring their
+own set of numerical difficulties.
+
+<p>
+
+Bj&ouml;rk[2, (pp165&mdash;171)] presents an excellent survey of solution
+approaches for the weighted least squares problem.  Direct solution of the
+normal equations (as illustrated in our simple R implementation of the IRLS
+algorithm above) is numerically unstable and not generally advised.  The survey
+in Bj&ouml;rk is really fascinating reading. His cited references show us that
+even standard Household QR decomposition can give poor accuracy for stiff
+problems unless its modified to include column <i>and</i> row pivoting. It
+turns out that the simplest numerically stable implementation for solving the
+linear system within the IRLS method is the Givens QR algorithm, shown by Anda
+and Park[1].
+ 
+<p>
+
+In practice with judicious monitoring of the entries of $W$ (in particular the
+stiffness $\max_j(W_{j,j})/\min_j(W_{j,j})$) and the quantities $g'(\eta)$ and
+$\mathrm{var}(g(\eta))$, we can choose among the most stable and convenient
+solution methods and simply warn the user when the algotihm gets into trouble
+numerically. This is indeed what R does in its own <tt>glm.fit</tt>
+implementation, which uses a Household QR solution method with column pivoting
+(but not row pivoting).
+
+
+
+
+
+
+<h3>Connection to ordinary least squares</h3>
+
 Note that when the link function is the identity function and the error
 distribution function of $\epsilon$ is Gaussian with mean zero and variance
-one, then algorithm IRLS becomes:
+one, then the IRLS algorithm becomes:
 
 <ol style="list-style:none">
 <li style="margin: 0 0 10px 0;"> $x_1=0$
@@ -440,7 +474,6 @@ MLE = glm(formula = use ~ age + I(age^2) + urban + livch,
 
 # Here is the standard model summary provided by GLM:
 print(summary(MLE))
-
 <font color="#009">
 Call:
 glm(formula = use ~ age + I(age^2) + urban + livch, family = binomial, 
@@ -470,7 +503,6 @@ AIC: 2431.7
 
 Number of Fisher Scoring iterations: 4
 </font>
-
 # Let's compare the maximum likelihood estimate with a generic nonlinear
 # least squares solution using the bootstrap to get a better sense of how
 # these two estimation approaches vary.
@@ -508,6 +540,7 @@ hist(compare_bootstrap[10,],main="age^2 direct nonlinear optimization",col=4,xli
 <h2>References</h2>
 
 <ol>
+<li> Anda, A. and Park, H., Self-scaling fast rotations for stiff least squares problems, Lin. Alg. Appl., 234, 1996, pp. 137-162.
 <li> Bj&ouml;rck, &Aring;.,  Numerical Methods for Least Squares Problems, SIAM, Philadelphia, 1996.
 <li> Bates, D., <a href="http://www.stat.wisc.edu/courses/st849-bates/lectures/GLMH.pdf">http://www.stat.wisc.edu/courses/st849-bates/lectures/GLMH.pdf</a>.
 <li> Gauss, C. F., Theoria combinationis observationum erroribus minimis obnoxiae, Pars prior, 1863 (1st written 1821).
@@ -516,6 +549,7 @@ hist(compare_bootstrap[10,],main="age^2 direct nonlinear optimization",col=4,xli
      J. Hastie, Wadsworth &amp; Brooks/Cole, 1992.
 <li> Markoff, A., Wahrscheinlichheitsrechnug,  Leipzig, 1912.
 <li> McCullagh P. and Nelder, J. A., Generalized Linear Models, Chapman and Hall, London 1989.
+<li> O'Leary, D., Robust regression computation using iteratively reweighted least squares, Siam J. Mat. Anal. Appl., Vol. 11 No. 3, 1990, pp. 466-480.
 <li> The R project <a href="http://www.r-project.org">http://www.r-project.org</a>.
 <li> Revolution Analytics <a href="http://revolutionanalytics.com">http://revolutionanalytics.com</a>.
 <li> Zelen, M., Linear estimation and relted topics, in Survey of Numerical Analysis, Todd. J. ed, McGraw-Hill, New York, 1962, pp. 429-441.
