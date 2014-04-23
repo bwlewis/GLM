@@ -198,31 +198,36 @@ But it's no longer linear either! How might we solve such a problem? Similarly
 to the basic linear model presented earlier, one natural idea is to use least
 squares.
 
-<h2>Nonlinear least squares</h2>
+
+<h2>Diversion: Nonlinear least squares</h2>
 
 Let's quickly recap ideas:
 <ul>
 <li> The generalized linear model problem is similar to an ordinary linear model problem, but
 with constraints on the predictor $Ax$.
-<li> We can use a link function to transform a GLM into an unconstrained problem, but...
+<li> We can use a link function to transform the problem into an unconstrained problem, but...
 <li> the resulting unconstrained problem is nonlinear.
 </ul>
-We can try to use nonlinear least squares to solve the transformed GLM problem
+We can try to use nonlinear least squares to directly solve the transformed problem
 just like we used ordinary least squares to solve
-the linear model problem. Consider the binary 0/1 data example in the last section, where
+the linear model problem. This isn't quite yet a generalized linear model because we have not
+yet said anything about the variance of $\epsilon$. But its still an interesting approach!
+
+<p>
+Consider the binary 0/1 data example in the last section, where
 the function $g$ is the logistic function.
 Let's cook up a nonlinear least squares method to solve
 \[
 \min_x ||g(Ax) - b||^2.
 \]
 We warn you right now that the nonlinear least squares solution turns
-out to <i>not</i> be the most efficient way to solve GLMs. Feel free to skip on
+out to be far less computationally efficient than the GLM approach
+outlined next that uses the method of maximum likelihood. Feel free to skip on
 down to the maximum likelihood methods below. But this technique is just so
-obvious, and we have found GLMs so rarely discussed in this way elsewhere, that
-we feel compelled to explore this solution method.
+obvious that we feel compelled to explore it.
 
 <p>
-The following R function solves the GLM problem by direct application of a
+The following R function solves the problem by direct application of a
 nonlinear least squares solver to the link function-transformed problem. We use
 R's <tt>optim</tt> optimization function using Broyden's method (a quasi-Newton
 solver&mdash;most nonlinear solvers are variations on Newton or secant
