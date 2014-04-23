@@ -141,21 +141,18 @@ in the error term $e$ of our earlier linear model required that $V(e) = \sigma^2
 General Gauss-Markoff linear models relax this requirement. When we say "generalized
 linear model" we mean a linear model of the form:
 \[
-Ax = b + e,\qquad V(e)=\sigma^2W,
+Ax = b + e,\qquad V(e)=\sigma^2W^{-1},
 \]
 where $A$ is an $m\times n$ matrix of $\mathrm{rank}(A)=n$,
 $e$ is a vector of random variables with zero mean and covariance matrix
-$\sigma^2 W$ and $W$ is a symmetric nonnegative definite matrix.
+$\sigma^2 W^{-1}$ and $W$ is a symmetric positive definite matrix.
 See Bk&ouml;rk[2, pp. 160-165]
 for a concise introduction to generalized linear models that we largely follow here.
-
-<p>
-
-When $W$ is symmetric positive definite, the solution of the
-generalized linear model can be formulated as
+The solution of the generalized linear model can be formulated as
 \[
-\min_x(Ax-b)^TW^{-1}(Ax -b).
+\min_x(Ax-b)^TW(Ax -b),
 \]
+with solution $x=(A^T W A)^{-1}A^T W b$.
 The numerical solution of model problems of this form was carefully
 analyzed by Paige[9]. The generalized linear models that we focus on in this note
 are less general than that, and assume that $W$ is a diagonal  matrix with
@@ -292,7 +289,7 @@ Later we will compare the two solution methods in a systematic way.
 You may find it curious that we've formulated generalized linear models so far
 without reference to a specific probability distribution for the residual error
 values in $e$. (We <i>have</i> so far assumed that $e$ consists
-of independent and identically distributed random variables.) Equipping
+at least of independent random variables.) Equipping
 $e$ with an assumed specific probability distribution enables us to
 estimate the model coefficients using the method of maximum likelihood.
 
