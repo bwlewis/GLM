@@ -19,7 +19,9 @@
 <a name="generalized-linear-models-abridged" class="anchor" href="#generalized-linear-models-abridged"><span class="octicon octicon-link"></span></a>Generalized linear models, abridged.
 </h1>
 <p class="view"><a href="https://github.com/bwlewis/GLM">View the Project on GitHub &nbsp;&nbsp;  bwlewis/GLM</a></p>
-<a href="mailto:blewis@illposed.net">Bryan W. Lewis</a> and <a href="mailto:michael.kane@yale.edu">Mike Kane</a>
+<a href="mailto:michael.kane@yale.edu">Mike Kane</a>
+and
+<a href="mailto:blewis@illposed.net">Bryan W. Lewis</a>
 </section>
 <section>
 
@@ -71,23 +73,6 @@ These are working notes. We'll continue to tweak and revise them.
 
 We begin by defining what we mean when we say "linear model" before moving on
 to GLMs. Our presentation and notation generally follow Bj&ouml;rk[2].
-<!--
-including the following definition of expected value and variance. Let $y$ be
-a random variable with distribution function $F(y)$. The expected value $\mu$ and
-the variance $\sigma^2$ of $y$ are defined:
-\[
-E(y) = \mu = \int_{-\infty}^{\infty} ydF(y),
-\qquad \sigma^2 = \int_{-\infty}^{\infty}(y-\mu)^2dF(y).
-\]
-When $y$ is a vector of random variables, we write $E(y)$ to mean the expected
-value applied pointwise to each entry, and similarly we define the expected
-value of a matrix of random variables to be the expected value of each entry.
-Define the variance-covariance matrix of a vector of random variables $y$ with
-vector of expected values $\mu$ to be
-\[
-V(y) = E(yy^T) - \mu \mu^T.
-\]
--->
 Let $b\in\mathbb{R}^m, b\ne 0$ be a vector of measurements (called a response
 vector) and let $A\in\mathbb{R}^{m\times n}$, $\mathrm{rank}(A)=n$, be a matrix
 formed from data observations (called the model matrix).  Then
@@ -95,14 +80,6 @@ formed from data observations (called the model matrix).  Then
 Ax = b + \epsilon
 \]
 is what we mean when we say "linear model,"
-<!--
-where $x\in\mathbb{R}^n$ is a
-vector of model coefficients and $E(\epsilon)=0$ and $V(\epsilon)=\sigma^2 I$.
-That is, the residual error term $\epsilon$ consists of uncorrelated random
-variables with zero mean and the same variance. Let's just get phrase out of
-the way and assume that the residual error in our models consists of
-independent and identically distributed random variables.
--->
 where $x\in\mathbb{R}^n$ is a vector of model coefficients and the entries of
 the residual error term $\epsilon\in\mathbb{R}^m$ are independent and
 identically distributed random variables.  Given a vector $x$ of model
@@ -369,14 +346,13 @@ converged after only five iterations in this example.
 
 <h2>IRLS Notes</h2>
 
-IRLS solves a weighted least squares problem in each iteration because
-after all,
+IRLS solves a weighted least squares problem in each iteration:
 \[
-(A^T W A)^{-1} A^T W z
+(A^T W A)^{-1} A^T W z,
 \]
-is the solution to the least squares problem:
+which is the solution to the (weighted) least squares problem:
 \[
-\min_x||W^{1/2}(Ax - b)||^2,
+\min||W^{1/2}(Ax - b)||^2,
 \]
 so long as the diagonal weight matrix $W$ consists of positive entries along
 the diagonal.  We make this a requirement of IRLS. Looking at how the weight
@@ -398,13 +374,13 @@ own set of numerical difficulties.
 Bj&ouml;rk[2, (pp. 165&mdash;171)] presents an excellent survey of solution
 approaches for the weighted least squares problem.  Direct solution of the
 normal equations (as illustrated in our simple R implementation of the IRLS
-algorithm above) is numerically unstable and not generally advised.  The survey
-in Bj&ouml;rk is really fascinating reading. His cited references show us that
-even standard Household QR decomposition can give poor accuracy for stiff
-problems unless it's modified to include column <i>and</i> row pivoting. It
-turns out that the simplest numerically stable implementation for solving the
-linear system within the IRLS method is the Givens QR algorithm, shown by Anda
-and Park[1].
+algorithm above) is potentially numerically unstable and not generally advised.
+The survey in Bj&ouml;rk is really fascinating reading. His cited references
+show us that even standard Household QR decomposition can give poor accuracy
+for stiff problems unless it's modified to include column <i>and</i> row
+pivoting. It turns out that the simplest numerically stable implementation for
+solving the linear system within the IRLS method is the Givens QR algorithm,
+shown by Anda and Park[1].
  
 <p>
 
