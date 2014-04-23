@@ -400,11 +400,11 @@ converged after only five iterations in this example.
 
 <h2>IRLS Notes</h2>
 
-IRLS solves a weighted least squares problem in each iteration:
+IRLS solves a generalized linear model in each iteration:
 \[
 (A^T W A)^{-1} A^T W z,
 \]
-which is the solution to the (weighted) least squares problem:
+which is the just the solution to the (weighted) least squares problem:
 \[
 \min||W^{1/2}(Ax - b)||^2,
 \]
