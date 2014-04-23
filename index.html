@@ -31,8 +31,8 @@ Generalized linear models (GLMs) are indispensable tools in the data science
 toolbox. They are applicable to many real-world problems involving continuous,
 yes/no, count and survival data. The models themselves are intuitive and can be
 used for inference and prediction.  A few very high quality free and open
-source software implementations are available (in particular within R[9]), as are
-several very good commercial ones (Revolution Analytics[10], SAS, Stata).
+source software implementations are available (in particular within R[10]), as are
+several very good commercial ones (Revolution Analytics[11], SAS, Stata).
 
 <p>
 <br/>
@@ -62,7 +62,7 @@ GLM implementations in our opinion.
 
 This is <i>not</i> a formal introduction to GLMs.  We focus on illuminating
 just a few key ideas, mostly from a numerical point of view and often focusing
-on performance and scalability. We refer the reader to the references [3,5,7,11]
+on performance and scalability. We refer the reader to the references [3,5,7,9,12]
 for complete introductions to linear models.
 
 <p>
@@ -77,11 +77,11 @@ Let $b\in\mathbb{R}^m, b\ne 0$ be a vector of measurements (called a response
 vector) and let $A\in\mathbb{R}^{m\times n}$, $\mathrm{rank}(A)=n$, be a matrix
 formed from data observations (called the model matrix).  Then
 \[
-Ax = b + \epsilon
+Ax = b + e
 \]
 is what we mean when we say "linear model,"
 where $x\in\mathbb{R}^n$ is a vector of model coefficients and the entries of
-the residual error term $\epsilon\in\mathbb{R}^m$ are independent and
+the residual error term $e\in\mathbb{R}^m$ are independent and
 identically distributed random variables.  Given a vector $x$ of model
 coefficients, we call the product $Ax$ a predictor of the response vector $b$.
 We're leaving important definitions of "random variable" and "independent and
@@ -110,9 +110,60 @@ seminal work of Gauss[4] and later rediscovered by Markoff[6]. (The least
 squares solution defines a <i>minimum variance unbiased estimator</i>, the
 technical details of which we leave to the references, in particular see [5,7].)
 
-<h2>Generalized linear models</h2>
+<h2>Generalized linear models I</h2>
 
-Generalized linear models
+Relaxing conditions on linear models by allowing the entries of $e$ to be
+correlated or to be distributed with differing variances gives us generalized
+linear models. We need a few technical definitions to make this precise.
+
+<p>
+
+Let $\epsilon$ be
+a random variable with distribution function $F(\epsilon)$. The expected value $\mu$ and
+the variance $\sigma^2$ of $\epsilon$ are defined as:
+\[
+E(\epsilon) = \mu = \int_{-\infty}^{\infty} \epsilon dF(\epsilon),
+\qquad \sigma^2 = \int_{-\infty}^{\infty}(\epsilon-\mu)^2dF(\epsilon).
+\]
+When $e$ is a vector of random variables, we write $E(e)$ to mean the expected
+value of each entry, and similarly we define the expected value of a matrix of
+random variables to be the expected value of each entry.  Define the
+variance-covariance matrix of a vector of random variables $e$ with mean vector
+$\mu$ to be
+\[
+V(e) = E(ee^T) - \mu \mu^T.
+\]
+
+<p>
+
+The assumption of independence and identical distribution among the random variables
+in the error term $e$ of our earlier linear model required that $V(e) = \sigma^2 I$.
+General Gauss-Markoff linear models relax this requirement. When we say "generalized
+linear model" we mean a linear model of the form:
+\[
+Ax = b + e,\qquad V(e)=\sigma^2W,
+\]
+where $A$ is an $m\times n$ matrix of $\mathrm{rank}(A)=n$,
+$e$ is a vector of random variables with zero mean and covariance matrix
+$\sigma^2 W$ and $W$ is a symmetric nonnegative definite matrix.
+See Bk&ouml;rk[2, pp. 160-165]
+for a concise introduction to generalized linear models that we largely follow here.
+
+<p>
+
+When $W$ is symmetric positive definite, the solution of the
+generalized linear model can be formulated as
+\[
+\min_x(Ax-b)^TW^{-1}(Ax -b).
+\]
+The numerical solution of model problems of this form was carefully
+analyzed by Paige[9]. The generalized linear models that we focus on in this note
+are less general than that, and assume that $W$ is a diagonal  matrix with
+positive entries.
+
+<h2>Generalized linear models II</h2>
+
+Generalized linear models typically
 arise when we constrain the values that the predictor $Ax$ can take on. Such
 constraints are important for many practical problems.  For example:
 <ul>
@@ -137,12 +188,12 @@ $A\in\mathbb{R}^{m\times n}$ be a given model matrix with $\mathrm{rank}(A)=n$, 
 $b\in\mathbb{R}^m$, $b\ne 0$, be a given response vector. The generalized linear model
 problem is to compute an $x$ that satisfies:
 \[
-Ax = b + \epsilon,\qquad \mathrm{such\, that}\,\, Ax\in(0,1).
+Ax = b + e,\qquad \mathrm{such\, that}\,\, Ax\in(0,1).
 \]
 We can formulate a related unconstrained problem
 that solves for $x$ in
 \[
-g(Ax) = b + \epsilon,
+g(Ax) = b + e,
 \]
 where $g$ is the logistic function applied elementwise to $Ax$. The problem
 is no longer constrained because $g$ maps any value to the interval $(0,1)$.
@@ -240,16 +291,16 @@ Later we will compare the two solution methods in a systematic way.
 
 You may find it curious that we've formulated generalized linear models so far
 without reference to a specific probability distribution for the residual error
-values in $\epsilon$. (We <i>have</i> so far assumed that $\epsilon$ consists
+values in $e$. (We <i>have</i> so far assumed that $e$ consists
 of independent and identically distributed random variables.) Equipping
-$\epsilon$ with an assumed specific probability distribution enables us to
+$e$ with an assumed specific probability distribution enables us to
 estimate the model coefficients using the method of maximum likelihood.
 
 <p>
 
 The maximum likelihood method, in brief, formulates a scalar-valued
 <i>likelihood function</i> of the parameters to be estimated and the assumed
-joint distribution of the random variables in $\epsilon$. The value of the
+joint distribution of the random variables in $e$. The value of the
 likelihood function represents an estimate of how likely the parameters are
 given the data. (If this sounds Bayesian, it is!) One proceeds to then maximize
 the likelihood function or equivalently its logarithm, which is simpler in
@@ -270,7 +321,7 @@ squares. The following algorithm presents the key steps of this approach.
 Model matrix $A\in\mathbb{R}^{m\times n}$,
 response vector $b\in\mathbb{R}^m$,
 inverse link function $g$ and its derivative $g'$,
-the variance $\mathrm{var}$ as a function of the mean associated with the distribution function of $\epsilon$,
+the variance $\mathrm{var}$ as a function of the mean associated with the distribution function of $e$,
 termination tolerance $\mathrm{tol}$, maximum number of iterations itmax.
 Note that "$/$" indicates element-wise division and the inverse link function $g$ and
 its derivative and $\mathrm{var}$ are applied element-wise to their vector arguments.
@@ -384,7 +435,7 @@ shown by Anda and Park[1].
  
 <p>
 
-In practice with judicious monitoring of the entries of $W$ (in particular the
+In practice, with judicious monitoring of the entries of $W$ (in particular the
 stiffness $\max_j(W_{j,j})/\min_j(W_{j,j})$) and the quantities $g'(\eta)$ and
 $\mathrm{var}(g(\eta))$, we can choose among the most stable and convenient
 solution methods and simply warn the user when the algotihm gets into trouble
@@ -394,13 +445,10 @@ implementation, which uses a Household QR solution method with column pivoting
 
 
 
-
-
-
 <h3>Connection to ordinary least squares</h3>
 
 Note that when the link function is the identity function and the error
-distribution function of $\epsilon$ is Gaussian with mean zero and variance
+distribution function of $e$ is Gaussian with mean zero and variance
 one, then the IRLS algorithm becomes:
 
 <ol style="list-style:none">
@@ -526,6 +574,7 @@ hist(compare_bootstrap[10,],main="age^2 direct nonlinear optimization",col=4,xli
 <li> Markoff, A., Wahrscheinlichheitsrechnug,  Leipzig, 1912.
 <li> McCullagh P. and Nelder, J. A., Generalized Linear Models, Chapman and Hall, London 1989.
 <li> O'Leary, D., Robust regression computation using iteratively reweighted least squares, Siam J. Mat. Anal. Appl., Vol. 11 No. 3, 1990, pp. 466-480.
+<li> Paige, C. C., Fast numerically stable computations for generalized least squares problems, Siam J. Num. Anal., 16, 1979, pp. 165-171.
 <li> The R project <a href="http://www.r-project.org">http://www.r-project.org</a>.
 <li> Revolution Analytics <a href="http://revolutionanalytics.com">http://revolutionanalytics.com</a>.
 <li> Zelen, M., Linear estimation and relted topics, in Survey of Numerical Analysis, Todd. J. ed, McGraw-Hill, New York, 1962, pp. 429-441.
