@@ -211,7 +211,7 @@ with constraints on the predictor $Ax$.
 We can try to use nonlinear least squares to directly solve the transformed problem
 just like we used ordinary least squares to solve
 the linear model problem. This isn't quite yet a generalized linear model because we have not
-yet said anything about the variance of $\epsilon$. But its still an interesting approach!
+yet said anything about the variance of $e$. But its still an interesting approach!
 
 <p>
 Consider the binary 0/1 data example in the last section, where
@@ -287,8 +287,8 @@ livch3+      0.806025052  0.753420488
 We see that the nonlinear least squares solution is slightly different than R's
 <tt>glm</tt> solution. Indeed, their estimation methods are in fact different:
 The R's <tt>glm</tt> function uses the maximum likelihood method described
-below, which minimizes the variance of $\epsilon$, and the simple nonlinear
-least squares estimate minimizes the Euclidean norm of $\epsilon$.
+below, which minimizes the variance of $e$, and the simple nonlinear
+least squares estimate minimizes the Euclidean norm of $e$.
 
 <h2>Maximum likelihood estimation</h2>
 
