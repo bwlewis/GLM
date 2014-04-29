@@ -356,9 +356,8 @@ stiffness $\max_j(W_{j,j})/\min_j(W_{j,j})$) and the quantities $g'(\eta)$ and
 $\mathrm{var}(g(\eta))$, we can choose among the most stable and convenient
 solution methods and simply warn the user when the algotihm gets into trouble
 numerically. This is indeed what R does in its own <tt>glm.fit</tt>
-implementation, which uses a Household QR solution method with column pivoting
-(but not row pivoting).
-
+implementation, which uses a Household QR decomposition of $WA$ with column
+pivoting, modified to reveal the rank of the matrix at each step.
 
 
 <h3>Connection to ordinary least squares</h3>
