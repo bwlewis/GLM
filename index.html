@@ -280,8 +280,10 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
   list(coefficients=x,iterations=j)
 }
 </pre>
-Let's compare our minimalist estimator to R's <tt>glm</tt> function using the
-same example that we used to compare the nonnegative least squares method:
+Let's compare our minimalist estimator to R's <tt>glm</tt> function.
+We use a real-world data example from the "mlmRev" package, which you may
+need to install with <tt>install.packages("mlmRev")</tt>. The example
+is described in Doug Bates' excellent concise notes on GLMs[3].
 <p>
 <pre>
 data("Contraception",package="mlmRev")
