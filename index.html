@@ -204,8 +204,8 @@ But it's no longer linear either!
 <p>
 The choice of the nature of the error distribution defines the norm-weighting
 matrix $W$ discussed in the previous section. If we assume that the entries of
-$e$ consist of uncorrelated random variables with identical variance $1$, then
-$W=I$ and the problem reduces to simple nonlinear least squares:
+$e$ consist of uncorrelated random variables with identical variance, then
+$W=\sigma^{-2}I$ and the problem reduces to simple nonlinear least squares:
 \[
 \min_x ||g(Ax) - b||^2.
 \]
@@ -213,7 +213,7 @@ That problem can be solved in R by several optimization methods,
 including Broyden's quasi-Newton method as follows:
 <pre>
 # Input: A is an m by n model matrix, b a response vector of length m,
-#        g is the inverse link function (g=binomial()$linkinv  for logistic).
+#        g is the inverse link function.
 # Output: The model coefficients x.
 
 nnls_glm = function(A,b,g)
@@ -226,7 +226,8 @@ nnls_glm = function(A,b,g)
 If the entries of $e$ consist of uncorrelated random variables but with
 different variances, then $W\ne I$ but $W$ is still a diagonal matrix. This is
 common to many generalized linear model problems and results in a weighted
-nonlinear least squares problem
+nonlinear least squares problem (compare to the generalized linear model definition
+in the previous section):
 \[
 \min_x(g(Ax)-b)^TW(g(Ax) -b),
 \]
@@ -253,6 +254,9 @@ its derivative and $\mathrm{var}$ are applied element-wise to their vector argum
   <li> Stop if $||x_{j+1} - x_j|| \lt \mathrm{tol}$.
 </ol>
 </ol>
+<h4>Output</h4>
+Model coefficients $x_{j+1}$.
+<p>
 <hr>
 It's remarkable how rapidly this simple algorithm converges. Before we dive in to
 details, let's look at one possible R implementation of this algorithm and
@@ -357,7 +361,7 @@ shown by Anda and Park[1].
 In practice, with judicious monitoring of the entries of $W$ (in particular the
 stiffness $\max_j(W_{j,j})/\min_j(W_{j,j})$) and the quantities $g'(\eta)$ and
 $\mathrm{var}(g(\eta))$, we can choose among the most stable and convenient
-solution methods and simply warn the user when the algotihm gets into trouble
+solution methods and simply warn the user when the algorithm gets into trouble
 numerically. This is indeed what R does in its own <tt>glm.fit</tt>
 implementation, which uses a Household QR decomposition of $WA$ with column
 pivoting, modified to reveal the rank of the matrix at each step.
@@ -381,10 +385,17 @@ which is just the ordinary least squares solution.
 
 <h2>IRLS Performance considerations</h2>
 
+Perhaps the most important performance considerations for a good GLM/IRLS implementation are:
+<ol>
+<li> Take advantage of fast basic linear algebra subroutine (BLAS) and LAPACK libraries whenever possible.
+<li> Take advantage of fast sparse matrix vector products.
+</ol>
+We will see that #2 is somewhat at odds with numerical stability. We seek to develop a
+flexible method that can reasonably accommodate stability and performance.
+
 <h2>Solving large GLMs by breaking them up into a series of smaller problems</h2>
 
 <h2>Distributed parallel computation of IRLS</h2>
-
 
 
 </section>
