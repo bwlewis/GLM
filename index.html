@@ -233,7 +233,10 @@ in the previous section):
 \]
 typically solved by the iteratively reweighted least square method described next.
 
-<h3>Algorithm IRLS: Iteratively reweighted least squares estimation</h3>
+<h3>
+<a name="IRLS" class="anchor" href="#IRLS"><span class="octicon octicon-link"></span></a>
+Algorithm IRLS: Iteratively reweighted least squares estimation
+</h3>
 <h4>Input</h4>
 Model matrix $A\in\mathbb{R}^{m\times n}$,
 response vector $b\in\mathbb{R}^m$,
@@ -244,13 +247,13 @@ Note that "$/$" indicates element-wise division and the inverse link function $g
 its derivative and $\mathrm{var}$ are applied element-wise to their vector arguments.
 <p>
 <ol style="list-style:none">
-<li style="margin: 0 0 10px 0;"> Let $x_1=0$.
+<li class="lino"> Let $x_1=0$.
 <li> For $j=1,2,\ldots,\mathrm{itmax}$, do:
 <ol style="list-style:none;">
-  <li style="margin: 0 0 10px 0;"> Let $\eta = Ax_j$.
-  <li style="margin: 0 0 10px 0;"> Let $z = \eta + \frac{b - g(\eta)}{g'(\eta)},\qquad$
-  <li style="margin: 0 0 10px 0;"> Let $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta)))$.
-  <li style="margin: 0 0 10px 0;"> Let $x_{j+1} = x_j + (A^T W A)^{-1} A^T W z$.
+  <li class="lino"> Let $\eta = Ax_j$.
+  <li class="lino"> Let $z = \eta + \frac{b - g(\eta)}{g'(\eta)},\qquad$
+  <li class="lino"> Let $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta)))$.
+  <li class="lino"> Let $x_{j+1} = x_j + (A^T W A)^{-1} A^T W z$.
   <li> Stop if $||x_{j+1} - x_j|| \lt \mathrm{tol}$.
 </ol>
 </ol>
@@ -259,14 +262,14 @@ Model coefficients $x_{j+1}$.
 <p>
 <hr>
 It's remarkable how rapidly this simple algorithm converges. Before we dive in to
-details, let's look at one possible R implementation of this algorithm and
+details, let's look at one simple R implementation of this algorithm and
 compare it to R's <tt>glm</tt> function. The minimalist GLM function below
 (closer to R's <tt>glm.fit</tt>, really)
 takes as input a model matrix $A$, a response vector $b$, an R distribution family
 object, and optional maximum number of iterations and tolerance values.
 <p>
 <pre>
-minimalist_glm =
+irls =
 function(A, b, family=binomial, maxit=25, tol=1e-08)
 {
   x = rep(0,ncol(A))
@@ -277,34 +280,33 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
     gprime = family()$mu.eta(eta)
     z      = eta + (b - g) / gprime
     W      = as.vector(gprime^2 / family()$variance(g))
-    ATWA   = crossprod(A,(W * A))
-    ATWz   = t(crossprod(W*z,A))
     xold   = x
-    x      = solve(ATWA, ATWz, tol=2*.Machine$double.eps)
+    x      = solve(crossprod(A,W*A), crossprod(A,W*z), tol=2*.Machine$double.eps)
     if(sqrt(crossprod(x-xold)) &lt; tol) break
   }
   list(coefficients=x,iterations=j)
 }
 </pre>
 <p>
-Let's compare our minimalist estimator to R's <tt>glm</tt> function.
+Let's compare our super-minimalist IRLS estimator to R's <tt>glm</tt> function.
 We use a real-world data example from the "mlmRev" package, which you may
 need to install with <tt>install.packages("mlmRev")</tt>. The example
-is described in Doug Bates' beautifully concise notes on GLMs[3].
+is described in Doug Bates' beautifully concise notes on GLMs[3] (you
+should read them!).
 <pre>
 data("Contraception",package="mlmRev")
 
 # Model estimated with R's glm function, returning model matrix and response
 # in $x and $y, respectively:
-MLE = glm(formula = use ~ age + I(age^2) + urban + livch,
-          family = binomial, x=TRUE, data=Contraception)
+R_GLM = glm(formula = use ~ age + I(age^2) + urban + livch,
+            family = binomial, x=TRUE, data=Contraception)
 
 # Model estimated with our radically stripped-down minimalist implementation:
-mini = minimalist_glm(MLE$x, MLE$y, family=binomial)
+mini = irls(R_GLM$x, R_GLM$y, family=binomial)
 
-print(data.frame(MLE=coef(MLE), minimalist=coef(mini)))
+print(data.frame(R_GLM=coef(R_GLM), minimalist=coef(mini)))
 <font color="#00a">
-                     MLE   minimalist
+                   R_GLM   minimalist
 (Intercept) -0.949952124 -0.949952124
 age          0.004583726  0.004583726
 I(age^2)    -0.004286455 -0.004286455
@@ -315,7 +317,7 @@ livch3+      0.806025052  0.806025052
 </font>
 </pre>
 The results agree to displayed accuracy. Our minimalist implementation
-converged after five iterations in this example.
+of IRLS converged after five iterations in this example.
 
 <h2>IRLS Notes</h2>
 
@@ -374,17 +376,24 @@ distribution function of $e$ is Gaussian with mean zero and variance
 one, then the IRLS algorithm becomes:
 
 <ol style="list-style:none">
-<li style="margin: 0 0 10px 0;"> $x_1=0$
-<li style="margin: 0 0 10px 0;"> $\eta = Ax_1 = 0$
-<li style="margin: 0 0 10px 0;"> $z = \eta + \frac{b - g(\eta)}{g'(\eta)} = 0 + \frac{b - 0}{1} = b$
-<li style="margin: 0 0 10px 0;"> $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta))) = \mathrm{diag}(1^2 /1)= I$
-<li style="margin: 0 0 10px 0;"> $x_{2} = 0 + (A^T A)^{-1} A^T b$,
+<li class="lino"> $x_1=0$
+<li class="lino"> $\eta = Ax_1 = 0$
+<li class="lino"> $z = \eta + \frac{b - g(\eta)}{g'(\eta)} = 0 + \frac{b - 0}{1} = b$
+<li class="lino"> $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta))) = \mathrm{diag}(1^2 /1)= I$
+<li class="lino"> $x_{2} = 0 + (A^T A)^{-1} A^T b$,
 </ol>
 
 which is just the ordinary least squares solution.
 
-<h2>IRLS Performance considerations</h2>
+<h2>IRLS implementations for performance and stability</h2>
 
+We already sketched a simple implementation of the IRLS algorithm above
+(see <a href="#IRLS">IRLS</a>). Recall that that method can suffer from potential
+numerical instability because it directly solves the normal equations.
+In this section we consider a few alternative implementations, including a variation of our
+simple method <a href="#IRLS">IRLS</a>, focusing on stability and performance.
+
+<p>
 Perhaps the most important performance considerations for a good GLM/IRLS implementation are:
 <ol>
 <li> Take advantage of fast basic linear algebra subroutine (BLAS) and LAPACK libraries whenever possible.
@@ -392,6 +401,147 @@ Perhaps the most important performance considerations for a good GLM/IRLS implem
 </ol>
 We will see that #2 is somewhat at odds with numerical stability. We seek to develop a
 flexible method that can reasonably accommodate stability and performance.
+
+<h3>
+<a name="qrnewton" class="anchor" href="#qrnewton"><span class="octicon octicon-link"></span></a>
+Algorithm IRLS (QR Newton variant)
+</h3>
+
+This method was defined by O'Leary[8]. The idea is to compute a $QR$
+factorization of the model matrix $A$ just once, possibly by a rank-revealing
+$QR$ method to identify problematic model matrices at the start. The
+factorization is then used in the IRLS iteration.
+
+<p>
+
+It turns out that IRLS iterations that rely on factored forms of the model
+matrix can be made more computationally stable and efficient by updating the
+residual error vector instead of the model coefficients. The idea is to let
+$r = b - Ax$ for some initial guess of $x$, iteratively update $r$ by IRLS,
+and then solve the consistent linear system $Ax = b - r$ for $x$. Here is the
+method:
+
+<h4>Input</h4>
+Model matrix $A\in\mathbb{R}^{m\times n}$,
+response vector $b\in\mathbb{R}^m$,
+inverse link function $g$ and its derivative $g'$,
+the variance $\mathrm{var}$ as a function of the mean associated with the distribution function of $e$,
+termination tolerance $\mathrm{tol}$, maximum number of iterations itmax.
+We also requre a sense of "too small" for the numerical checks indicated
+in the algorithm.
+Note that "$/$" indicates element-wise division and the inverse link function $g$ and
+its derivative and $\mathrm{var}$ are applied element-wise to their vector arguments.
+<p>
+<ol style="list-style:none">
+<li class="lino"> Let $r=b$ (or possibly some other initial guess).
+<li class="lino"> Compute $A = QR$.
+<li> For $j=1,2,\ldots,\mathrm{itmax}$, do:
+<ol style="list-style:none;">
+  <li class="lino"> Let $\eta = b - r$.
+  <li class="lino"> Let $z = \eta + \frac{b - g(\eta)}{g'(\eta)},\qquad$
+  <li class="lino"> Let $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta)))$.
+  <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small error out or warn the user.
+  <li class="lino"> Let $r_{old} = r$.
+  <li class="lino"> Let $r = b - A(A^T W A)^{-1} A^T W z = b - Q(Q^T W Q)^{-1}Q^T W z.$
+  <li class="lino"> (Solve that last updating equation with a Cholesky factorization of $Q^T W Q$.)
+  <li> Exit for loop if $||r_{old} - r|| \lt \mathrm{tol}$.
+</ol>
+<li class="lino"> Solve $R x = Q^T(b - r)$ for $x$ (simple backsolve).
+</ol>
+<h4>Output</h4>
+Model coefficients $x$.
+<p>
+<h4>R implementation</h4>
+<pre>
+irls_qrnewton =
+function(A, b, family=binomial, maxit=25, tol=1e-08)
+{
+  r  = b
+  QR = qr(A)
+  Q  = qr.Q(QR)
+  R  = qr.R(QR)
+  for(j in 1:maxit)
+  {
+    eta    = b - r
+    g      = family()$linkinv(eta)
+    gprime = family()$mu.eta(eta)
+    z      = eta + (b - g) / gprime
+    W      = as.vector(gprime^2 / family()$variance(g))
+    wmin   = min(W)
+    if(wmin < sqrt(.Machine$double.eps))
+      warning("Tiny weights encountered, likely numerical problems!")
+    rold   = r
+    C   = chol(crossprod(Q, W*Q))
+    s   = forwardsolve(t(C), crossprod(Q,W*z))
+    s   = backsolve(C,s)
+    r      = b - Q %*% s
+    if(sqrt(crossprod(r-rold)) < tol) break
+  }
+  x = backsolve(R, crossprod(Q,b-r))
+  list(coefficients=x,iterations=j)
+}
+</pre>
+<hr>
+
+This is a pretty cool IRLS implementation. It avoids direct solution of the
+normal equations in each step by only using the orthogonal $Q$ matrix and
+the current set of weights. That results in potentially much better numerical
+stability than the simple implementation <a href="#irls">IRLS</a>.
+
+<p>
+The computations rely on the $QR$ and Cholesky factorizations and matrix
+multiplication, all available to R from high-performance tuned BLAS libraries
+like the Intel MKL, AMD ACML, OpenBlas (Goto), and ATLAS.  That means that if
+you have one of those BLAS libraries installed and linked to R, then this
+method will take advantage of available CPU vectorized instrucions and
+multithreading and run fast.
+
+<p>
+R's native IRLS method embedded in its <tt>glm.fit</tt> function computes
+a $QR$ decomposition of the matrix $A^TWA$ in each iteration step.
+O'Leary's <a href="#qrnewton">QR Newton method</a> shown above instead
+only computes one $QR$ factorization of $A$ at the start. It then monitors
+possible rank deficiency by checking the size of the smallest diagonal
+element of the weight matrix in each step.
+
+<p>
+What if the final system $Ax = b -r$ becomes inconsistent due to roundoff or
+other errors? That is certainly one potential numerical issue with the <a
+href="#qrnewton">QR Newton</a> method. See O'Leary[8] for a brief discussion of
+this. In practice the method is numerically robust even if this occurs, although
+the residual norm $||Ax - b+r||$ is a good diagnostic value for the method.
+
+<p>
+Let's at least verify the plausibility of this method by repeating an earlier
+example from Doug Bates[3]:
+<pre>
+data("Contraception",package="mlmRev")
+
+# Model estimated with R's glm function, returning model matrix and response
+# in $x and $y, respectively:
+R_GLM = glm(formula = use ~ age + I(age^2) + urban + livch,
+            family = binomial, x=TRUE, data=Contraception)
+
+# Model estimated by IRLS/QR Newton:
+iqrn = irls_qrnewton(R_GLM$x, R_GLM$y, family=binomial)
+
+print(data.frame(R_GLM=coef(R_GLM), qr_newton=coef(iqrn)))
+<font color="#00a">
+                   R_GLM    qr_newton
+(Intercept) -0.949952124 -0.949952124
+age          0.004583726  0.004583726
+I(age^2)    -0.004286455 -0.004286455
+urbanY       0.768097459  0.768097459
+livch1       0.783112821  0.783112821
+livch2       0.854904050  0.854904050
+livch3+      0.806025052  0.806025052
+</font>
+</pre>
+No surprises here for this modest-sized and well-conditioned data set. The
+IRLS/QR Newton method produces coefficients that match those of R's native GLM
+method to displayed accuracy.
+
+
 
 <h2>Solving large GLMs by breaking them up into a series of smaller problems</h2>
 
