@@ -502,7 +502,7 @@ multithreading and run fast.
 <p>
 
 R's native IRLS method embedded in its <tt>glm.fit</tt> function computes
-a $QR$ decomposition of the matrix $A^TWA$ in each iteration step.
+a $QR$ decomposition of the weighted matrix $WA$ in each iteration step.
 O'Leary's <a href="#qrnewton">QR Newton method</a> shown above instead
 only computes one $QR$ factorization of $A$ at the start. It then monitors
 possible rank deficiency by checking the size of the smallest diagonal
