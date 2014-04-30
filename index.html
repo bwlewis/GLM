@@ -487,16 +487,20 @@ This is a pretty cool IRLS implementation. It avoids direct solution of the
 normal equations in each step by only using the orthogonal $Q$ matrix and
 the current set of weights. That results in potentially much better numerical
 stability than the simple implementation <a href="#irls">IRLS</a>.
+Positive-definiteness for the Cholesky factorization is easily checked in
+each iteration by examining the diagonal entries of the weight matrix.
 
 <p>
+
 The computations rely on the $QR$ and Cholesky factorizations and matrix
-multiplication, all available to R from high-performance tuned BLAS libraries
-like the Intel MKL, AMD ACML, OpenBlas (Goto), and ATLAS.  That means that if
-you have one of those BLAS libraries installed and linked to R, then this
-method will take advantage of available CPU vectorized instrucions and
+multiplication, all available to R from high-performance tuned BLAS and LAPACK
+libraries like the Intel MKL, AMD ACML, OpenBlas (Goto), and ATLAS.  That means
+that if you have one of those BLAS libraries installed and linked to R, then
+this method will take advantage of available CPU vectorized instrucions and
 multithreading and run fast.
 
 <p>
+
 R's native IRLS method embedded in its <tt>glm.fit</tt> function computes
 a $QR$ decomposition of the matrix $A^TWA$ in each iteration step.
 O'Leary's <a href="#qrnewton">QR Newton method</a> shown above instead
