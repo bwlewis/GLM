@@ -391,8 +391,8 @@ which is just the ordinary least squares solution.
 We already sketched a simple implementation of the IRLS algorithm above
 (see <a href="#IRLS">IRLS</a>). Recall that that method can suffer from potential
 numerical instability because it directly solves the normal equations.
-In this section we consider a few alternative implementations, including a variation of our
-simple method <a href="#IRLS">IRLS</a>, focusing on stability and performance.
+In this section we consider an alternative implementation,
+focusing on stability and performance.
 
 <p>
 Perhaps the most important performance considerations for a good GLM/IRLS implementation are:
@@ -485,7 +485,7 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
 <hr>
 
 This is a pretty cool IRLS implementation. It avoids direct solution of the
-normal equations in each step by only using the orthogonal $Q$ matrix and
+normal equations in each step by only using the orthonormal $Q$ matrix and
 the current set of weights. That results in potentially much better numerical
 stability than the simple implementation <a href="#irls">IRLS</a>.
 Positive-definiteness for the Cholesky factorization is easily checked in
