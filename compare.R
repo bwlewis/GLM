@@ -9,3 +9,6 @@ print(data.frame(R_GLM=coef(R_GLM), minimalist=coef(mini)))
 
 iqrn = irls_qrnewton(R_GLM$x, R_GLM$y, family=binomial)
 print(data.frame(R_GLM=coef(R_GLM), qr_newton=coef(iqrn)))
+
+isvdn = irls_svdnewton(R_GLM$x, R_GLM$y, family=binomial)
+print(data.frame(R_GLM=coef(R_GLM), svd_newton=coef(isvdn)))
