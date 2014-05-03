@@ -16,7 +16,7 @@
     <div class="wrapper">
 <section>
 <h1>
-<a name="generalized-linear-models-abridged" class="anchor" href="#generalized-linear-models-abridged"><span class="octicon octicon-link"></span></a>
+<a name="generalized-linear-models-abridged" class="anchor" href="#generalized-linear-models-abridged"></a>
 Generalized linear models, abridged.
 </h1>
 <p class="view"><a href="https://github.com/bwlewis/GLM">View the Project on GitHub &nbsp;&nbsp;  bwlewis/GLM</a></p>
@@ -27,7 +27,7 @@ and
 <section>
 
 <h2>Introduction</h2>
-
+<p>
 Generalized linear models (GLMs) are indispensable tools in the data science
 toolbox. They are applicable to many real-world problems involving continuous,
 yes/no, count and survival data. The models themselves are intuitive and can be
@@ -36,7 +36,6 @@ source software implementations are available (in particular within R[10]), as a
 several very good commercial ones (Revolution Analytics[11], SAS, Stata).
 
 <p>
-<br/>
 Despite the wide applicability of GLMs and the availability of high-quality
 reference implementations, we've found it hard to find good high-performance
 free and open source software implementations geared to solving large problems.
@@ -60,7 +59,7 @@ other languages.  Python and Boost/C++ are particularly well-equipped for good
 GLM implementations in our opinion.
 
 <h2>Disclaimer</h2>
-
+<p>
 This is <i>not</i> a formal introduction to GLMs.  We focus on illuminating
 just a few key ideas, mostly from a numerical point of view and often focusing
 on performance and scalability. We refer the reader to the references [3,5,7,9,12]
@@ -71,7 +70,7 @@ for complete introductions to linear models.
 These are working notes. We'll continue to tweak and revise them.
 
 <h2>Linear models</h2>
-
+<p>
 We begin by defining what we mean when we say "linear model" before moving on
 to GLMs. Our presentation and notation generally follow Bj&ouml;rk[2].
 Let $b\in\mathbb{R}^m, b\ne 0$ be a vector of measurements (called a response
@@ -88,7 +87,7 @@ coefficients, we call the product $Ax$ a predictor of the response vector $b$.
 We're leaving important definitions of "random variable" and "independent and
 identically distributed" to the references.
 
-<p><br/>
+<p>
 
 Given a model matrix $A$ and response vector $b$, there are many ways we might
 go about solving for a vector of model coefficients $x$. We describe a
@@ -112,7 +111,7 @@ squares solution defines a <i>minimum variance unbiased estimator</i>, the
 technical details of which we leave to the references, in particular see [5,7].)
 
 <h2>Generalized linear models</h2>
-
+<p>
 Relaxing conditions on linear models by allowing the entries of $e$ to be
 correlated or to be distributed with differing variances gives us generalized
 linear models. We need a few technical definitions to make this precise.
@@ -161,7 +160,7 @@ and assume that $W$ is a diagonal
 matrix with positive entries along its diagonal.
 
 <h2>Generalized linear models in practice</h2>
-
+<p>
 Generalized linear models typically
 arise when we constrain the values that the predictor $Ax$ can take on and assume
 a specific distribution function for the entries of $e$.
@@ -184,7 +183,7 @@ g(a) = \frac{1}{1 + \exp(-a)}
 \]
 maps arbitrary values $a\in\mathbb{R}$ into the interval $(0,1)$.
 
-<p><br/>
+<p>
 Consider the binary 0/1 data example cited above.  Let
 $A\in\mathbb{R}^{m\times n}$ be a given model matrix with $\mathrm{rank}(A)=n$, and let
 $b\in\mathbb{R}^m$, $b\ne 0$, be a given response vector. The generalized linear model
@@ -234,17 +233,19 @@ in the previous section):
 typically solved by the iteratively reweighted least square method described next.
 
 <h3>
-<a name="IRLS" class="anchor" href="#IRLS"><span class="octicon octicon-link"></span></a>
+<a name="IRLS" class="anchor" href="#IRLS"></a>
 Algorithm IRLS: Iteratively reweighted least squares estimation
 </h3>
 <h4>Input</h4>
 Model matrix $A\in\mathbb{R}^{m\times n}$,
 response vector $b\in\mathbb{R}^m$,
 inverse link function $g$ and its derivative $g'$,
-the variance $\mathrm{var}$ as a function of the mean associated with the distribution function of $e$,
+the variance $\mathrm{var}$ as a function of the mean associated with the
+distribution function of $e$,
 termination tolerance $\mathrm{tol}$, maximum number of iterations itmax.
-Note that "$/$" indicates element-wise division and the inverse link function $g$ and
-its derivative and $\mathrm{var}$ are applied element-wise to their vector arguments.
+Here and below, "$/$" indicates element-wise division and the inverse
+link function $g$ and its derivative and $\mathrm{var}$ are applied
+element-wise to their vector arguments.
 <p>
 <ol style="list-style:none">
 <li class="lino"> Let $x_1=0$.
@@ -259,8 +260,9 @@ its derivative and $\mathrm{var}$ are applied element-wise to their vector argum
 </ol>
 <h4>Output</h4>
 Model coefficients $x_{j+1}$.
-<p>
+<br/>
 <hr>
+<p>
 It's remarkable how rapidly this simple algorithm converges. Before we dive in to
 details, let's look at one simple R implementation of this algorithm and
 compare it to R's <tt>glm</tt> function. The minimalist GLM function below
@@ -321,7 +323,7 @@ The results agree to displayed accuracy. Our minimalist implementation
 of IRLS converged after five iterations in this example.
 
 <h2>IRLS Notes</h2>
-
+<p>
 IRLS solves a generalized linear model in each iteration:
 \[
 (A^T W A)^{-1} A^T W z,
@@ -371,8 +373,8 @@ pivoting, modified to reveal the rank of the matrix at each step.
 
 
 <h3>Connection to ordinary least squares</h3>
-
-Note that when the link function is the identity function and the error
+<p>
+When the link function is the identity function and the error
 distribution function of $e$ is Gaussian with mean zero and variance
 one, then the IRLS algorithm becomes:
 
@@ -386,35 +388,39 @@ one, then the IRLS algorithm becomes:
 
 which is just the ordinary least squares solution.
 
-<h2>IRLS implementations for performance and stability</h2>
-
-We already sketched a simple implementation of the IRLS algorithm above
-(see <a href="#IRLS">IRLS</a>). Recall that that method can suffer from potential
-numerical instability because it directly solves the normal equations.
-In this section we consider an alternative implementation,
-focusing on stability and performance.
+<h2>Performance and stability</h2>
 
 <p>
-Perhaps the most important performance considerations for a good GLM/IRLS implementation are:
+
+We already sketched a simple implementation of the IRLS algorithm above (see <a
+href="#IRLS">IRLS</a>). Recall that that method can suffer from potential
+numerical instability because it directly solves the normal equations.  In this
+section we consider an alternative implementation, focusing on stability and
+performance.
+
+<p>
+Perhaps the most important performance considerations for a good GLM/IRLS
+implementation are:
+
 <ol>
-<li> Take advantage of fast basic linear algebra subroutine (BLAS) and LAPACK libraries whenever possible.
+<li> Take advantage of fast basic linear algebra subroutine (BLAS) and
+     LAPACK libraries whenever possible.
 <li> Take advantage of fast sparse matrix vector products.
 </ol>
 We will see that #2 is somewhat at odds with numerical stability. We seek to develop a
 flexible method that can reasonably accommodate stability and performance.
 
 <h3>
-<a name="qrnewton" class="anchor" href="#qrnewton"><span class="octicon octicon-link"></span></a>
+<a name="qrnewton" class="anchor" href="#qrnewton"></a>
 Algorithm IRLS (QR Newton variant)
 </h3>
-
+<p>
 This method was defined by O'Leary[8]. The idea is to compute a $QR$
 factorization of the model matrix $A$ just once, possibly by a rank-revealing
 $QR$ method to identify problematic model matrices at the start. The
 factorization is then used in the IRLS iteration.
 
 <p>
-
 It turns out that IRLS iterations that rely on factored forms of the model
 matrix can be made more computationally stable and efficient by updating the
 residual error vector instead of the model coefficients. The idea is to let
@@ -426,12 +432,11 @@ method:
 Model matrix $A\in\mathbb{R}^{m\times n}$,
 response vector $b\in\mathbb{R}^m$,
 inverse link function $g$ and its derivative $g'$,
-the variance $\mathrm{var}$ as a function of the mean associated with the distribution function of $e$,
+the variance $\mathrm{var}$ as a function of the mean associated with the
+distribution function of $e$,
 termination tolerance $\mathrm{tol}$, maximum number of iterations itmax.
 We also requre a sense of "too small" for the numerical checks indicated
 in the algorithm.
-Note that "$/$" indicates element-wise division and the inverse link function $g$ and
-its derivative and $\mathrm{var}$ are applied element-wise to their vector arguments.
 <p>
 <ol style="list-style:none">
 <li class="lino"> Let $r=b$ (or possibly some other initial guess).
@@ -483,11 +488,11 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
 }
 </pre>
 <hr>
-
+<p>
 This is a pretty cool IRLS implementation. It avoids direct solution of the
 normal equations in each step by only using the orthonormal $Q$ matrix and
 the current set of weights. That results in potentially much better numerical
-stability than the simple implementation <a href="#irls">IRLS</a>.
+stability than our earlier simple implementation <a href="#irls">IRLS</a>.
 Positive-definiteness for the Cholesky factorization is easily checked in
 each iteration by examining the diagonal entries of the weight matrix.
 
@@ -511,8 +516,8 @@ element of the weight matrix in each step.
 
 <p>
 What if the final system $Ax = b -r$ becomes inconsistent due to roundoff or
-other errors? That is certainly one potential numerical issue with the <a
-href="#qrnewton">QR Newton</a> method. See O'Leary[8] for a brief discussion of
+other errors? That is certainly one potential numerical issue with the
+method. See O'Leary[8] for a brief discussion of
 this. In practice the method is numerically robust even if this occurs, although
 the residual norm $||Ax - b+r||$ is a good diagnostic value for the method.
 
@@ -548,7 +553,7 @@ method to displayed accuracy.
 
 
 
-<h2>Solving large GLMs by breaking them up into a series of smaller problems</h2>
+<h2>Breaking large GLMs into a series of smaller problems</h2>
 
 <h2>Distributed parallel computation of IRLS</h2>
 
