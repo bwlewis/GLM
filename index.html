@@ -45,10 +45,9 @@ high-performance implementations.
 
 <p>
 
-Our goal for this note is to present the core ideas behind GLMs correctly and
-also as simply as we can. Focusing on core ideas, we present very basic
-implementations, most of which solve GLMs in just a few lines of code.  We
-discuss implementation details that enable the development of effective
+Our goal for this note is to present the core ideas behind GLMs We present very
+basic implementations, most of which solve GLMs in just a few lines of code.
+We discuss implementation details that enable the development of effective
 distributed parallel implementations suitable for solution of large-scale
 problems.
 
@@ -415,9 +414,9 @@ flexible method that can reasonably accommodate stability and performance.
 Algorithm IRLS (QR Newton variant)
 </h3>
 <p>
-This method was defined by O'Leary[8]. The idea is to compute a $QR$
+This method was defined by O'Leary[8]. The idea is to compute a QR
 factorization of the model matrix $A$ just once, possibly by a rank-revealing
-$QR$ method to identify problematic model matrices at the start. The
+QR method to identify problematic model matrices at the start. The
 factorization is then used in the IRLS iteration.
 
 <p>
@@ -449,7 +448,7 @@ in the algorithm.
   <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small error out or warn the user.
   <li class="lino"> Let $r_{old} = r$.
   <li class="lino"> Let $r = b - A(A^T W A)^{-1} A^T W z = b - Q(Q^T W Q)^{-1}Q^T W z.$
-  <li class="lino"> (Solve that last updating equation with a Cholesky factorization of $Q^T W Q$.)
+  <li class="lino"> (Solve with a Cholesky factorization of $Q^T W Q$.)
   <li> Exit for loop if $||r_{old} - r|| \lt \mathrm{tol}$.
 </ol>
 <li class="lino"> Solve $R x = Q^T(b - r)$ for $x$ (simple backsolve).
@@ -498,7 +497,7 @@ each iteration by examining the diagonal entries of the weight matrix.
 
 <p>
 
-The computations rely on the $QR$ and Cholesky factorizations and matrix
+The computations rely on the QR and Cholesky factorizations and matrix
 multiplication, all available to R from high-performance tuned BLAS and LAPACK
 libraries like the Intel MKL, AMD ACML, OpenBlas (Goto), and ATLAS.  That means
 that if you have one of those BLAS libraries installed and linked to R, then
@@ -508,9 +507,9 @@ multithreading and run fast.
 <p>
 
 R's native IRLS method embedded in its <tt>glm.fit</tt> function computes
-a $QR$ decomposition of the weighted matrix $WA$ in each iteration step.
+a QR decomposition of the weighted matrix $WA$ in each iteration step.
 O'Leary's <a href="#qrnewton">QR Newton method</a> shown above instead
-only computes one $QR$ factorization of $A$ at the start. It then monitors
+only computes one QR factorization of $A$ at the start. It then monitors
 possible rank deficiency by checking the size of the smallest diagonal
 element of the weight matrix in each step.
 
@@ -553,6 +552,60 @@ method to displayed accuracy.
 
 
 
+<h3>
+<a name="qrnewton" class="anchor" href="#qrnewton"></a>
+Algorithm IRLS (SVD Newton variant)
+</h3>
+<p>
+If you're really concerned about rank deficiency of the model matrix and you
+don't have a rank-revealing QR method available and you're willing to pay a
+few extra flops on the initial matrix decomposition, then the IRLS QR Newton
+variation can be easily adapted to an SVD-based method that definitively
+determines the rank of the model matrix.
+
+<h4>Input</h4>
+Model matrix $A\in\mathbb{R}^{m\times n},\,\,m\le n$,
+response vector $b\in\mathbb{R}^m$,
+inverse link function $g$ and its derivative $g'$,
+the variance $\mathrm{var}$ as a function of the mean associated with the
+distribution function of $e$,
+termination tolerance $\mathrm{tol}$, maximum number of iterations itmax.
+<p>
+<ol style="list-style:none">
+<li class="lino"> Let $r=b$ (or possibly some other initial guess).
+<li class="lino"> Compute the SVD
+$AV = U\Sigma,\,\,\,\, U^TU = I,\,\,\, V^TV = I, \,\,\,\Sigma=\mathrm{diag}(\sigma_1\ge\sigma_2\ge\cdots\sigma_m\gt 0)$.
+<li class="lino">(If any $\sigma_j=0$ then $A$ is rank-deficient, stop and warn the user.)
+<li> For $j=1,2,\ldots,\mathrm{itmax}$, do:
+<ol style="list-style:none;">
+  <li class="lino"> Let $\eta = b - r$.
+  <li class="lino"> Let $z = \eta + \frac{b - g(\eta)}{g'(\eta)},\qquad$
+  <li class="lino"> Let $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta)))$.
+  <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small error out or warn the user.
+  <li class="lino"> Let $r_{old} = r$.
+  <li class="lino"> Let $r = b - U(U^T W U)^{-1}U^T W z.$
+  <li class="lino"> (Solve with a Cholesky factorization of $U^T W U$.)
+  <li> Exit for loop if $||r_{old} - r|| \lt \mathrm{tol}$.
+</ol>
+<li class="lino"> Let $x = V\Sigma^{-1}U^T(b - r)$.
+</ol>
+<h4>Output</h4>
+Model coefficients $x$.
+
+<p>
+
+Similarly to the QR Newton method listed above, the SVD-based method only uses
+the orthogonal $U$ matrix and the current weighting matrix in each iteration.
+A side-benefit of the SVD is that the final solution for model coefficients
+no longer requires a backsolve. This is Bryan's personal favorite IRLS
+implementation. An R implementation of this algorithm is available in the
+<tt>implementations.R</tt> file in the Github repository.
+
+
+<h3>Sparse model matrices</h3>
+
+
+
 <h2>Breaking large GLMs into a series of smaller problems</h2>
 
 <h2>Distributed parallel computation of IRLS</h2>
@@ -584,7 +637,10 @@ method to displayed accuracy.
 
 <script src="javascripts/scale.fix.js"></script>
 <script type="text/x-mathjax-config">
-  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+MathJax.Hub.Config({
+tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+"HTML-CSS": { scale: 90}
+});
 </script>
 <script type="text/javascript"
   src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
