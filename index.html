@@ -232,7 +232,7 @@ in the previous section):
 typically solved by the iteratively reweighted least square method described next.
 
 <h3>
-<a name="IRLS" class="anchor" href="#IRLS"></a>
+<a name="irls" class="anchor" href="#irls"></a>
 Algorithm IRLS: Iteratively reweighted least squares estimation
 </h3>
 <h4>Input</h4>
@@ -392,10 +392,9 @@ which is just the ordinary least squares solution.
 <p>
 
 We already sketched a simple implementation of the IRLS algorithm above (see <a
-href="#IRLS">IRLS</a>). Recall that that method can suffer from potential
-numerical instability because it directly solves the normal equations.  In this
-section we consider an alternative implementation, focusing on stability and
-performance.
+href="#irls">IRLS</a>). Recall that that method can suffer from potential
+numerical instability.  We consider variations of that method in this section
+that focus on numerical stability and performance.
 
 <p>
 Perhaps the most important performance considerations for a good GLM/IRLS
@@ -499,7 +498,7 @@ each iteration by examining the diagonal entries of the weight matrix.
 
 The computations rely on the QR and Cholesky factorizations and matrix
 multiplication, all available to R from high-performance tuned BLAS and LAPACK
-libraries like the Intel MKL, AMD ACML, OpenBlas (Goto), and ATLAS.  That means
+libraries like the Intel MKL, AMD ACML, OpenBlas (Goto), or ATLAS.  That means
 that if you have one of those BLAS libraries installed and linked to R, then
 this method will take advantage of available CPU vectorized instrucions and
 multithreading and run fast.
@@ -553,7 +552,7 @@ method to displayed accuracy.
 
 
 <h3>
-<a name="qrnewton" class="anchor" href="#qrnewton"></a>
+<a name="svdnewton" class="anchor" href="#svdnewton"></a>
 Algorithm IRLS (SVD Newton variant)
 </h3>
 <p>
@@ -591,7 +590,7 @@ $AV = U\Sigma,\,\,\,\, U^TU = I,\,\,\, V^TV = I, \,\,\,\Sigma=\mathrm{diag}(\sig
 </ol>
 <h4>Output</h4>
 Model coefficients $x$.
-
+<hr/>
 <p>
 
 Similarly to the QR Newton method listed above, the SVD-based method only uses
@@ -602,7 +601,103 @@ implementation. An R implementation of this algorithm is available in the
 <tt>implementations.R</tt> file in the Github repository.
 
 
-<h3>Sparse model matrices</h3>
+<h3>
+<a name="sparse" class="anchor" href="#sparse"></a>
+Sparse model matrices
+</h3>
+
+<p>
+
+Sparse model matrices arise in many practical problems, in particular when
+categorical variables are encoded by a unit basis to form so-called treatment
+contrasts. (The categories are contrasted against a baseline category.)
+We would like to take advantage of sparsity in the model matrix when it occurs,
+both to reduce its storage requirements and to improve performance of the
+IRLS method. This is particularly important for large problems.
+
+<p>
+
+The QR- and SVD-based IRLS methods described above destroy sparsity in the
+model matrix by replacing it with dense factors $Q$ and $U$, respectively.
+Although high-performance BLAS and LAPACK implementations are available for
+each method, neither takes any advantage of sparse model matrices.
+
+<p>
+
+Let's set aside numerical stability concerns for a moment and investigate how
+we might implement our original simple <a href="#irls">IRLS</a> method to take
+advantage of sparse model matrices.
+
+<p>
+
+In practice, we are likely to encounter problems with a mixture of continuous
+and categorial variables that lead to model matrices with some dense columns
+and some sparse columns. For example, the model matrix from the mlmRev package
+used in the previous examples has two columns with real-valued (dense) data and
+five columns containing only ones and zeros (sparse).
+
+<p>
+
+A large portion of the computational work in the <a href="#irls">IRLS</a>
+method occurs in the matrix product $A^TWA$. We want to compute this product as
+efficiently as possible. That means using fast optimized BLAS methods for the
+dense part, and fast sparse matrix multiplication methods for the sparse part,
+suggesting that we permute the columns of the model matrix and split it into
+dense and sparse parts. See the <tt>sparse_n_dense.R</tt> file available in
+this project's Github repository for an example microbenchmark and related
+numerical experiments that investigates this.
+
+<p>
+
+The performance change realized from splitting the matrix product into sparse
+and dense components compared to the usual dense computation is sensitive to
+many factors, including the model matrix size and ratio of sparse to dense
+columns, the CPU architecture and number of cores, and BLAS library used.  We
+list some results computed on our workstation using the
+<tt>sparse_n_dense.R</tt> experiment below for reference (don't take the
+results too seriously, instead experiment on your own!).
+
+<p>
+
+Our test workstation consisted of  one AMD A10-7850K CPU with 4 physical cores
+and 16 GB DDR3 RAM, running Ubuntu 12.04 and R version 3.0.2. We could only get
+Ubuntu's default <tt>libopenblas</tt> library to use two cores, even after
+trying many suggested environment variable settings. But the AMD ACML BLAS
+library we used was version 5.3.1 with fused multiply/add and multicore
+support, and it is probably the highest performance BLAS library available for
+this CPU.  The test matrix consisted of 100000 rows and 1000 columns, 100 of
+them dense and 900 of them sparse with 1% about fill-in, all randomly
+generated. See the <tt>sparse_n_dense.R</tt> file for details.
+
+<table>
+<th>BLAS library<th>Dense crossprod time in seconds<th>Split crossprod time in seconds
+<tr><td>ACML FMA4_MP BLAS<td>3.0<td>1.6
+<tr><td>OpenBLAS<td>4.7<td>1.6
+</table>
+Remember that this experiment is very sensitive to many factors. We encourage
+you to experiment on your own.
+
+
+<h4>Numerical stability and sparse problems</h4>
+<p>
+
+We've seen one way to adapt our basic <a href="#irls">IRLS</a> method to take
+advantage of sparse model matrices for performance, but what about numerical
+stability?  Although we can't match the numerical properties of the QR- or
+SVD-based methods, all is not lost. We can apply a rank-revealing Cholesky
+decomposition to the product $A^TWA$ inside each IRLS iteration, for example
+using the LAPACK <tt>dpstrf</tt> routine. That Cholesky decomposition uses
+column pivoting and can detect rank deficiency at each step of the algorithm.
+That way we can at least detect possible problems during the iteration
+(although we are still subject to loss of numerical accuracy from very
+ill-conditioned or stiff problems). The LAPACK <tt>dpstrf</tt> routine is
+directly available from R's <tt>chol</tt> function.
+
+<p>
+
+Let's put this long-winded sparse discussion together into a practical
+algorithm:
+
 
 
 
