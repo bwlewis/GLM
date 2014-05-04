@@ -693,10 +693,81 @@ That way we can at least detect possible problems during the iteration
 ill-conditioned or stiff problems). The LAPACK <tt>dpstrf</tt> routine is
 directly available from R's <tt>chol</tt> function.
 
+<h3>
+<a name="irlssparse" class="anchor" href="#irlssparse"></a>
+Algorithm IRLS (split dense/sparse model matrix variant)
+</h3>
 <p>
 
 Let's put this long-winded sparse discussion together into a practical
-algorithm:
+algorithm. Note the use of R's <tt>chol</tt> function pivoting option for
+rank detection below. The input dense and sparse matrix partitions should
+belong to the R class <tt>dgeMatrix</tt> from the <tt>Matrix</tt> package.  See
+the <tt>compare.R</tt> example script in this project for an example use of the
+following functions.
+
+
+<pre>
+# Example IRLS implementation that can take advantage of sparse model matrices.
+# Here we assume that the model matrix A is already permuted and partitioned
+# into A = [A_dense, A_sparse] dense and sparse columns.  The response vector b
+# is also assumed to be permuted conformably with the matrix partitioning.
+
+irls_sparse =
+function(A_dense, A_sparse, b, family=binomial, maxit=25, tol=1e-08)
+{
+  nd = ncol(A_dense)
+  ns = ncol(A_sparse)
+  n  = nd + ns
+  x = rep(0, n)
+  for(j in 1:maxit)
+  {
+    eta   = as.vector(A_dense %*% x[1:nd] + A_sparse %*% x[(nd+1):n])
+    g     = family()$linkinv(eta)
+    gprime = family()$mu.eta(eta)
+    z     = eta + (b - g) / gprime
+    W     = as.vector(gprime^2 / family()$variance(g))
+    xold  = x
+    ATWA  = sp_wt_cross(A_dense,A_sparse,W)
+    wz    = W*z
+    ATWz  = c(as.vector(crossprod(A_dense, wz)), as.vector(crossprod(A_sparse, wz)))
+
+    C   = chol(ATWA, pivot=TRUE)
+    if(attr(C,"rank") &lt; ncol(ATWA)) stop("Rank-deficiency detected.")
+    p   = attr(C, "pivot")
+    s   = forwardsolve(t(C), ATWz[p])
+    x   = backsolve(C,s)[p]
+
+    if(sqrt(crossprod(x-xold)) &lt; tol) break
+  }
+  list(coefficients=x,iterations=j)
+}
+</pre>
+
+<p>
+We use the following helper function that computes the sparse weighted
+matrix cross product:
+<pre>
+# Sparse weighted cross product helper function
+# Input: Dense Matrix A_dense, sparse Matrix A_sparse, weights W,
+# where A = [A_dense, A_sparse] and length W=ncol(A).
+# Output: Dense representation of crossprod(A,W*A)
+sp_wt_cross = function(A_dense, A_sparse, W)
+{
+  nd = ncol(A_dense)
+  ns = ncol(A_sparse)
+  n  = nd + ns
+  ATWA = matrix(0, nrow=n, ncol=n)
+  WA_dense  = W*A_dense
+  WA_sparse = W*A_sparse
+  ATWA[1:nd,1:nd] = as.matrix(crossprod(A_dense,WA_dense))
+  ATWA[1:nd,(nd+1):n] = as.matrix(crossprod(A_dense,WA_sparse))
+  ATWA[(nd+1):n,1:nd] = as.matrix(crossprod(A_sparse,WA_dense))
+  ATWA[(nd+1):n,(nd+1):n] = as.matrix(crossprod(A_sparse,WA_sparse))
+  ATWA
+}
+</pre>
+<hr/>
 
 
 
