@@ -97,7 +97,7 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
 # Sparse weighted cross product helper function
 # Input: Dense Matrix A_dense, sparse Matrix A_sparse, weights W,
 # where A = [A_dense, A_sparse] and length W=ncol(A).
-# Output: Dense regular matrix crossprod(A,W*A)
+# Output: Dense representation of crossprod(A,W*A)
 sp_wt_cross = function(A_dense, A_sparse, W)
 {
   nd = ncol(A_dense)
@@ -136,9 +136,11 @@ function(A_dense, A_sparse, b, family=binomial, maxit=25, tol=1e-08)
     wz    = W*z
     ATWz  = c(as.vector(crossprod(A_dense, wz)), as.vector(crossprod(A_sparse, wz)))
 
-    C   = chol(ATWA)
-    s   = forwardsolve(t(C), ATWz)
-    x   = backsolve(C,s)
+    C   = chol(ATWA, pivot=TRUE)
+    if(attr(C,"rank")<ncol(ATWA)) stop("Rank-deficiency detected.")
+    p   = attr(C, "pivot")
+    s   = forwardsolve(t(C), ATWz[p])
+    x   = backsolve(C,s)[p]
 
     if(sqrt(crossprod(x-xold)) < tol) break
   }
