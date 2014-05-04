@@ -12,3 +12,12 @@ print(data.frame(R_GLM=coef(R_GLM), qr_newton=coef(iqrn)))
 
 isvdn = irls_svdnewton(R_GLM$x, R_GLM$y, family=binomial)
 print(data.frame(R_GLM=coef(R_GLM), svd_newton=coef(isvdn)))
+
+# Let's test the sparse-aware IRLS example. But we need some data prep for it
+# first. The 1st three columns of our model matrix are dense:
+library("Matrix")
+A_dense = Matrix(R_GLM$x[,1:3], sparse=FALSE)
+# The next four columns are sparse:
+A_sparse = Matrix(R_GLM$x[,4:7], sparse=TRUE)
+isparse = irls_sparse(A_dense, A_sparse, R_GLM$y, family=binomial)
+print(data.frame(R_GLM=coef(R_GLM), irls_sparse=coef(isparse)))
