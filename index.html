@@ -45,11 +45,11 @@ high-performance implementations.
 
 <p>
 
-Our goal for this note is to present the core ideas behind GLMs We present very
-basic implementations, most of which solve GLMs in just a few lines of code.
-We discuss implementation details that enable the development of effective
-distributed parallel implementations suitable for solution of large-scale
-problems.
+Our goal for this note is to discuss some aspects of the GLM solution process
+that we find interesting.  We present very basic example solution
+implementations, most amounting to just a few lines of code.  We discuss
+details that enable the development of effective distributed parallel
+implementations suitable for solution of large-scale problems.
 
 <p>
 
@@ -624,17 +624,17 @@ each method, neither takes any advantage of sparse model matrices.
 
 <p>
 
-Let's set aside numerical stability concerns for a moment and investigate how
-we might implement our original simple <a href="#irls">IRLS</a> method to take
-advantage of sparse model matrices.
-
-<p>
-
-In practice, we are likely to encounter problems with a mixture of continuous
+In practice we're likely to encounter problems with a mixture of continuous
 and categorial variables that lead to model matrices with some dense columns
 and some sparse columns. For example, the model matrix from the mlmRev package
 used in the previous examples has two columns with real-valued (dense) data and
 five columns containing only ones and zeros (sparse).
+
+<p>
+
+Let's set aside numerical stability concerns for a moment and investigate how
+we might implement our original simple <a href="#irls">IRLS</a> method to take
+advantage of sparse model matrices.
 
 <p>
 
@@ -664,9 +664,9 @@ and 16 GB DDR3 RAM, running Ubuntu 12.04 and R version 3.0.2. We could only get
 Ubuntu's default <tt>libopenblas</tt> library to use two cores, even after
 trying many suggested environment variable settings. But the AMD ACML BLAS
 library we used was version 5.3.1 with fused multiply/add and multicore
-support, and it is probably the highest performance BLAS library available for
+support&mdash;probably the highest performance BLAS library available for
 this CPU.  The test matrix consisted of 100000 rows and 1000 columns, 100 of
-them dense and 900 of them sparse with 1% about fill-in, all randomly
+them dense and 900 of them sparse with about 1% fill-in, all randomly
 generated. See the <tt>sparse_n_dense.R</tt> file for details.
 
 <table>
