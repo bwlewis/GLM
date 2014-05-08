@@ -32,8 +32,8 @@ Generalized linear models (GLMs) are indispensable tools in the data science
 toolbox. They are applicable to many real-world problems involving continuous,
 yes/no, count and survival data. The models themselves are intuitive and can be
 used for inference and prediction.  A few very high quality free and open
-source software implementations are available (in particular within R[10]), as are
-several very good commercial ones (Revolution Analytics[11], SAS, Stata).
+source software implementations are available (in particular within R[11]), as are
+several very good commercial ones (Revolution Analytics[12], SAS, Stata).
 
 <p>
 Despite the wide applicability of GLMs and the availability of high-quality
@@ -61,7 +61,7 @@ GLM implementations in our opinion.
 <p>
 This is <i>not</i> a formal introduction to GLMs.  We focus on illuminating
 just a few key ideas, mostly from a numerical point of view and often focusing
-on performance and scalability. We refer the reader to the references [3,5,7,9,12]
+on performance and scalability. We refer the reader to the references [3,5,8,10,14]
 for complete introductions to linear models.
 
 <p>
@@ -105,9 +105,9 @@ where $||\cdot||$ indicates Euclidean norm. Note that the conditions that
 $\mathrm{rank}(A)=n$ and $b\ne 0$ imply that there exists a unique least
 squares solution.  It turns out that the least squares
 solution of linear models has important statistical properties shown in the
-seminal work of Gauss[4] and later rediscovered by Markoff[6]. (The least
+seminal work of Gauss[4] and later rediscovered by Markoff[7]. (The least
 squares solution defines a <i>minimum variance unbiased estimator</i>, the
-technical details of which we leave to the references, in particular see [5,7].)
+technical details of which we leave to the references, in particular see [5,8].)
 
 <h2>Generalized linear models</h2>
 <p>
@@ -153,7 +153,7 @@ The solution of the generalized linear model can be formulated as
 \]
 with solution $x=(A^T W A)^{-1}A^T W b$.
 The numerical solution of model problems of this form was carefully
-analyzed by Paige[9].
+analyzed by Paige[10].
 We focus on simplified generalized models here
 and assume that $W$ is a diagonal
 matrix with positive entries along its diagonal.
@@ -407,13 +407,15 @@ implementation are:
 </ol>
 We will see that #2 is somewhat at odds with numerical stability. We seek to develop a
 flexible method that can reasonably accommodate stability and performance.
+See these slides <a href="http://goo.gl/gcPezs">http://goo.gl/gcPezs</a> for a brief
+discussion on using high performance BLAS libraries with R.
 
 <h3>
 <a name="qrnewton" class="anchor" href="#qrnewton"></a>
 Algorithm IRLS (QR Newton variant)
 </h3>
 <p>
-This method was defined by O'Leary[8]. The idea is to compute a QR
+This method was defined by O'Leary[9]. The idea is to compute a QR
 factorization of the model matrix $A$ just once, possibly by a rank-revealing
 QR method to identify problematic model matrices at the start. The
 factorization is then used in the IRLS iteration.
@@ -487,12 +489,13 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
 </pre>
 <hr>
 <p>
-This is a pretty cool IRLS implementation. It avoids direct solution of the
-normal equations in each step by only using the orthonormal $Q$ matrix and
-the current set of weights. That results in potentially much better numerical
-stability than our earlier simple implementation <a href="#irls">IRLS</a>.
-Positive-definiteness for the Cholesky factorization is easily checked in
-each iteration by examining the diagonal entries of the weight matrix.
+
+This is a pretty cool IRLS implementation.  It only uses the orthonormal $Q$
+matrix and the current set of weights in each step. That results in potentially
+much better numerical stability than our earlier simple implementation <a
+href="#irls">IRLS</a>.  Positive-definiteness for the Cholesky factorization is
+easily checked in each iteration by examining the diagonal entries of the
+weight matrix because the $Q$ matrix is orthonormal.
 
 <p>
 
@@ -515,7 +518,7 @@ element of the weight matrix in each step.
 <p>
 What if the final system $Ax = b -r$ becomes inconsistent due to roundoff or
 other errors? That is certainly one potential numerical issue with the
-method. See O'Leary[8] for a brief discussion of
+method. See O'Leary[9] for a brief discussion of
 this. In practice the method is numerically robust even if this occurs, although
 the residual norm $||Ax - b+r||$ is a good diagnostic value for the method.
 
@@ -770,9 +773,89 @@ sp_wt_cross = function(A_dense, A_sparse, W)
 <hr/>
 
 
-
-
 <h2>Breaking large GLMs into a series of smaller problems</h2>
+
+<p>
+
+When problems have lots of observations (rows of the model matrix) it may not
+be possible to fit all the data in RAM memory. This section outlines strategies
+for breaking the GLM problem up into chunks, each one small enough to fit into
+RAM, incrementally building up a solution.
+
+<p>
+
+We don't discuss what to do when problems have so many variables that the model
+matrix cross product $A^TA$ is too big to work with in memory.  In that case
+it's possible that the columns of $A$ contain lots of redundant information.
+Variable selection techniques like the lasso are generally indicated for such
+problems to reduce the number of variables.
+
+<p>
+
+We assume in this section and the next that although the model matrix $A$
+itself may not fit into memory, its crossproduct $A^TA$ does. Note that a dense
+double precision-valued  matrix of size $10000 \times 10000$ consumes about
+800 MB RAM. That's close to a practical working limit for typical desktop
+computers (in May, 2014), taking in to consideration data copies, etc. More
+powerful systems with lots of RAM might handle larger problems with up to
+30000 coulmns in the model matrix or so.
+
+<p>
+
+The model coefficients are computed from a weighted matrix cross product in all
+of the methods shown so far; either from $A^TWA$ in the basic and sparse <a
+href="#irlssparse">IRLS implementations</a>, or from $Q^TWQ$ in the more
+numerically stable <a href="#qrnewton">QR based implementation</a>. Note
+however that if we can't load all of $A$ into memory, we are unlikely to be
+able to easily form its QR decomposition, at least without resorting to a
+distributed or out of core algorithm (we discuss both options later). Therefore
+we restrict our attention to the simple <a href="#irlssparse">IRLS</a>
+algorithm, even though the following discussion applies more generally.
+
+<p>
+
+It's easy to split up computation of $A^TWA$.
+For example, let
+\[
+A = \left[
+\begin{array}{c}
+A_1\\
+A_2
+\end{array}\right],\qquad
+W = \left[
+\begin{array}{cc}
+W_1 & 0\\
+0 & W_2
+\end{array}\right],
+\]
+where the subscripts on $A$ indicates a disjoint row partitioning and on $W$
+the corresponding diagonal blocks associated with the rows in the partitions.
+Then,
+\[
+A^T W A = A_1^T W_1 A_1 + A_2^T W_2 A_2.
+\]
+Each partial product on the right-hand side above is of the size of the (small)
+output cross product and only involves a subset of the rows of $A$ and $W$.
+That observation leads to a simple incremental algorithm that only loads a
+portion of the rows of the model matrix into memory at a time.
+
+<p>
+
+The biglm package by Thomas Lumley[6] proceeds along these lines to implement a
+bounded-memory GLM solver. We can similarly modify any of our earlier listed
+implementations. The example below adapts the basic <a
+href="#irlssparse">IRLS</a> method using the iterators package from Revolution
+Analytics to incrementally read matrix data from a file. We've left out the
+complication of partitioning of sparse and dense columns below for clarity of
+presentation. See the <tt>implementations.R</tt> source code in the Github
+project for the full version.
+
+
+<h3>
+<a class="anchor" href="#incremental"></a>
+Algorithm IRLS (incremental variant)
+</h3>
+
 
 <h2>Distributed parallel computation of IRLS</h2>
 
@@ -790,12 +873,14 @@ sp_wt_cross = function(A_dense, A_sparse, W)
 <li> Hastie, T. J. and Pregibon, D., Generalized linear models,
      Chapter 6 of Statistical Models in S, eds J. M. Chambers and T.
      J. Hastie, Wadsworth &amp; Brooks/Cole, 1992.
+<li> Lumley, T, <a href="http://cran.r-project.org/web/packages/biglm">http://cran.r-project.org/web/packages/biglm</a>.
 <li> Markoff, A., Wahrscheinlichheitsrechnug,  Leipzig, 1912.
 <li> McCullagh P. and Nelder, J. A., Generalized Linear Models, Chapman and Hall, London 1989.
 <li> O'Leary, D., Robust regression computation using iteratively reweighted least squares, Siam J. Mat. Anal. Appl., Vol. 11 No. 3, 1990, pp. 466-480.
 <li> Paige, C. C., Fast numerically stable computations for generalized least squares problems, Siam J. Num. Anal., 16, 1979, pp. 165-171.
 <li> The R project <a href="http://www.r-project.org">http://www.r-project.org</a>.
 <li> Revolution Analytics <a href="http://revolutionanalytics.com">http://revolutionanalytics.com</a>.
+<li> Revolution Analytics <a href="http://cran.r-project.org/web/packages/iterators">http://cran.r-project.org/web/packages/iterators</a>
 <li> Zelen, M., Linear estimation and relted topics, in Survey of Numerical Analysis, Todd. J. ed, McGraw-Hill, New York, 1962, pp. 429-441.
 </ol>
 </secion>
