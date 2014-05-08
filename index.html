@@ -145,7 +145,7 @@ Ax = b + e,\qquad V(e)=\sigma^2W^{-1},
 where $A$ is an $m\times n$ matrix of $\mathrm{rank}(A)=n$,
 $e$ is a vector of random variables with zero mean and covariance matrix
 $\sigma^2 W^{-1}$ and $W$ is a symmetric positive definite matrix.
-See Bk&ouml;rk[2, pp. 160-165]
+See Bj&ouml;rk[2, pp. 160-165]
 for a concise introduction to generalized linear models that we largely follow here.
 The solution of the generalized linear model can be formulated as
 \[
@@ -435,7 +435,7 @@ inverse link function $g$ and its derivative $g'$,
 the variance $\mathrm{var}$ as a function of the mean associated with the
 distribution function of $e$,
 termination tolerance $\mathrm{tol}$, maximum number of iterations itmax.
-We also requre a sense of "too small" for the numerical checks indicated
+We also require a sense of "too small" for the numerical checks indicated
 in the algorithm.
 <p>
 <ol style="list-style:none">
@@ -847,7 +847,8 @@ implementations. The example below adapts the basic
 <a href="#irlssparse">IRLS</a> method using a simple data file iterator function
 closure shown next.  The function iterates by rows through a delimited text
 file nrows at a time, returning NULL at the end.  Use <tt>init=TRUE</tt>
-argument to initialize/reset iterator (example below).
+argument to initialize/reset iterator (example below). The iterator assumes
+that the model matrix data are saved without row or column headers.
 
 <h3>
 <a class="anchor" href="#iterator"></a>
