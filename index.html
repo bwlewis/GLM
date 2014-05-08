@@ -843,18 +843,115 @@ portion of the rows of the model matrix into memory at a time.
 
 The biglm package by Thomas Lumley[6] proceeds along these lines to implement a
 bounded-memory GLM solver. We can similarly modify any of our earlier listed
-implementations. The example below adapts the basic <a
-href="#irlssparse">IRLS</a> method using the iterators package from Revolution
-Analytics to incrementally read matrix data from a file. We've left out the
-complication of partitioning of sparse and dense columns below for clarity of
-presentation. See the <tt>implementations.R</tt> source code in the Github
-project for the full version.
+implementations. The example below adapts the basic
+<a href="#irlssparse">IRLS</a> method using a simple data file iterator function
+closure shown next.  The function iterates by rows through a delimited text
+file nrows at a time, returning NULL at the end.  Use <tt>init=TRUE</tt>
+argument to initialize/reset iterator (example below).
 
+<h3>
+<a class="anchor" href="#iterator"></a>
+Basic file iterator function
+</h3>
+<pre>
+iterator = function(filename, nrows=100, sep=",")
+{
+  function(init=FALSE)
+  {
+    if(init)
+    {
+      f &lt;&lt;- file(filename)
+      open(f)
+      return(NULL)
+    }
+    tryCatch(
+      as.matrix(read.table(f, sep=sep, nrows=nrows)),
+      error=function(e)
+      {
+        close(f)
+        NULL
+      })
+  }
+}
+</pre>
 
+<p>
+We leave out the complication of partitioning of sparse and dense columns below
+for clarity of presentation (using only dense matrix arithmetic).
+You can bound the working memory of
+the method to at most <tt>chunksize</tt> rows at a time.
 <h3>
 <a class="anchor" href="#incremental"></a>
 Algorithm IRLS (incremental variant)
 </h3>
+<pre>
+irls_incremental =
+function(filename, chunksize, b, family=binomial, maxit=25, tol=1e-08)
+{
+  x     = NULL
+  chunk = iterator(filename, nrows=chunksize) # a basic data file iterator
+  for(j in 1:maxit)
+  {
+    k = 1                                     # Track the rows
+    chunk(init=TRUE)                          # initialize the iterator
+    A     = chunk()                           # get first chunk of model matrix
+# Initialize first time through (after ascertaining ncol(A)):
+    if(is.null(x)) x = rep(0,ncol(A))
+    ATWA = matrix(0,ncol(A),ncol(A))
+    ATWz = rep(0,ncol(A))
+    while(!is.null(A))                        # iterate
+    {
+      eta    = A %*% x
+      g      = family()$linkinv(eta)
+      gprime = family()$mu.eta(eta)
+      z      = eta + (b[k:(k+nrow(A)-1)] - g) / gprime
+      k      = k + nrow(A)
+      W      = as.vector(gprime^2 / family()$variance(g))
+      ATWz   = ATWz + crossprod(A,W*z)
+      ATWA   = ATWA + crossprod(A,W*A)
+      A      = chunk()    # Next chunk
+    }
+    xold  = x
+    C     = chol(ATWA, pivot=TRUE)
+    if(attr(C,"rank") &lt; ncol(C)) stop("Rank-deficiency detected.")
+    p     = attr(C, "pivot")
+    x     = backsolve(C,forwardsolve(t(C),ATWz[p]))[p]
+    if(sqrt(crossprod(x-xold)) &lt; tol) break
+  }
+  list(coefficients=x,iterations=j)
+}
+</pre>
+
+<p>
+Let's verify that this is a plausible method by recomputing
+our earlier example with the incremental method, first saving the
+model matrix to a data file to iterate over:
+<pre>
+data("Contraception",package="mlmRev")
+
+# Model estimated with R's glm function, returning model matrix and response
+# in $x and $y, respectively:
+R_GLM = glm(formula = use ~ age + I(age^2) + urban + livch,
+            family = binomial, x=TRUE, data=Contraception)
+
+# Save the model matrix to a file:
+write.table(R_GLM$x, file="data.csv", sep=",", col.names=FALSE, row.names=FALSE)
+
+# Model estimated by our incremental method, 500 rows at a time:
+inc = irls_incremental("data.csv", chunksize=500, b=R_GLM$y, family=binomial)
+
+print(data.frame(R_GLM=coef(R_GLM), incremental=coef(inc)))
+<font color="#00a">
+                   R_GLM  incremental
+(Intercept) -0.949952124 -0.949952124
+age          0.004583726  0.004583726
+I(age^2)    -0.004286455 -0.004286455
+urbanY       0.768097459  0.768097459
+livch1       0.783112821  0.783112821
+livch2       0.854904050  0.854904050
+livch3+      0.806025052  0.806025052
+</font>
+</pre>
 
 
 <h2>Distributed parallel computation of IRLS</h2>
