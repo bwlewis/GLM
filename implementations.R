@@ -137,11 +137,77 @@ function(A_dense, A_sparse, b, family=binomial, maxit=25, tol=1e-08)
     ATWz  = c(as.vector(crossprod(A_dense, wz)), as.vector(crossprod(A_sparse, wz)))
 
     C   = chol(ATWA, pivot=TRUE)
-    if(attr(C,"rank")<ncol(ATWA)) stop("Rank-deficiency detected.")
+    if(attr(C,"rank")<ncol(C)) stop("Rank-deficiency detected.")
     p   = attr(C, "pivot")
     s   = forwardsolve(t(C), ATWz[p])
     x   = backsolve(C,s)[p]
 
+    if(sqrt(crossprod(x-xold)) < tol) break
+  }
+  list(coefficients=x,iterations=j)
+}
+
+
+
+# The following simple iterator function is required by irls_incremental below.
+# This function iterates by rows through a delimited text file nrows at a time,
+# returning NULL at the end. For more sophisticated iterators, see the
+# iterators or lazy.frame packages. Use init=TRUE argument to initialize/reset
+# iterator. Example:
+# chunk = iterator("mydata.csv")
+# chunk(init=TRUE)
+# chunk() ... until it returns NULL
+iterator = function(filename, nrows=100, sep=",")
+{
+  function(init=FALSE)
+  {
+    if(init)
+    {
+      f <<- file(filename)
+      open(f)
+      return(NULL)
+    }
+    tryCatch(
+      as.matrix(read.table(f, sep=sep, nrows=nrows)),
+      error=function(e)
+      {
+        close(f)
+        NULL
+      })
+  }
+}
+
+irls_incremental =
+function(filename, chunksize, b, family=binomial, maxit=25, tol=1e-08)
+{
+  x     = NULL
+  chunk = iterator(filename, nrows=chunksize) # a basic data file iterator
+  for(j in 1:maxit)
+  {
+    k = 1                                     # Track the rows
+    chunk(init=TRUE)                          # initialize the iterator
+    A     = chunk()                           # get first chunk of model matrix
+# Initialize first time through (after ascertaining ncol(A)):
+    if(is.null(x)) x = rep(0,ncol(A))
+    ATWA = matrix(0,ncol(A),ncol(A))
+    ATWz = rep(0,ncol(A))
+    while(!is.null(A))                        # iterate
+    {
+      eta    = A %*% x
+      g      = family()$linkinv(eta)
+      gprime = family()$mu.eta(eta)
+      z      = eta + (b[k:(k+nrow(A)-1)] - g) / gprime
+      k      = k + nrow(A)
+      W      = as.vector(gprime^2 / family()$variance(g))
+      ATWz   = ATWz + crossprod(A,W*z)
+      ATWA   = ATWA + crossprod(A,W*A)
+      A      = chunk()    # Next chunk
+    }
+    xold  = x
+    C     = chol(ATWA, pivot=TRUE)
+    if(attr(C,"rank")<ncol(C)) stop("Rank-deficiency detected.")
+    p     = attr(C, "pivot")
+    x     = backsolve(C,forwardsolve(t(C),ATWz[p]))[p]
     if(sqrt(crossprod(x-xold)) < tol) break
   }
   list(coefficients=x,iterations=j)

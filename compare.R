@@ -21,3 +21,9 @@ A_dense = Matrix(R_GLM$x[,1:3], sparse=FALSE)
 A_sparse = Matrix(R_GLM$x[,4:7], sparse=TRUE)
 isparse = irls_sparse(A_dense, A_sparse, R_GLM$y, family=binomial)
 print(data.frame(R_GLM=coef(R_GLM), irls_sparse=coef(isparse)))
+
+# Let's test the incremental implementation...
+# Write out the model matrix to a data file for the incremental example.
+write.table(R_GLM$x, file="data.csv", sep=",", col.names=FALSE, row.names=FALSE)
+inc = irls_incremental("data.csv", 500, R_GLM$y, family=binomial)
+print(data.frame(R_GLM=coef(R_GLM), incremental=coef(inc)))
