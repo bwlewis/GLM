@@ -354,7 +354,7 @@ approaches for the weighted least squares problem.  Direct solution of the
 normal equations (as illustrated in our simple R implementation of the IRLS
 algorithm above) is potentially numerically unstable and not generally advised.
 The brief survey in Bj&ouml;rk is really fascinating reading. His cited references
-show us that even standard Household QR decomposition can give poor accuracy
+show us that even standard Householder QR decomposition can give poor accuracy
 for stiff problems unless it's modified to include column <i>and</i> row
 pivoting. It turns out that the simplest numerically stable implementation for
 solving the linear system within the IRLS method is the Givens QR algorithm,
@@ -367,7 +367,7 @@ stiffness $\max_j(W_{j,j})/\min_j(W_{j,j})$) and the quantities $g'(\eta)$ and
 $\mathrm{var}(g(\eta))$, we can choose among the most stable and convenient
 solution methods and simply warn the user when the algorithm gets into trouble
 numerically. This is indeed what R does in its own <tt>glm.fit</tt>
-implementation, which uses a Household QR decomposition of $WA$ with column
+implementation, which uses a Householder QR decomposition of $WA$ with column
 pivoting, modified to reveal the rank of the matrix at each step.
 
 
