@@ -74,7 +74,7 @@ We begin by defining what we mean when we say "linear model" before moving on
 to GLMs. Our presentation and notation generally follow Bj&ouml;rk[2].
 Let $b\in\mathbb{R}^m, b\ne 0$ be a vector of measurements (called a response
 vector) and let $A\in\mathbb{R}^{m\times n}$, $\mathrm{rank}(A)=n$, be a matrix
-formed from data observations (called the model matrix).  Then
+formed from data observations (called a model matrix).  Then
 \[
 Ax = b + e
 \]
@@ -113,7 +113,7 @@ technical details of which we leave to the references, in particular see [5,8].)
 <p>
 Relaxing conditions on linear models by allowing the entries of $e$ to be
 correlated or to be distributed with differing variances gives us generalized
-linear models. We need a few technical definitions to make this precise.
+linear models. We need a few technical definitions to shore up this idea.
 
 <p>
 
@@ -268,7 +268,8 @@ compare it to R's <tt>glm</tt> function. The minimalist GLM function below
 (closer to R's <tt>glm.fit</tt>, really)
 takes as input a model matrix $A$, a response vector $b$, an R distribution family
 object, and optional maximum number of iterations and tolerance values.
-(This is the shortest GLM implementation we could come up with!)
+(This is the shortest GLM implementation we could come up with! But it's got
+some numerical issues, so read on...)
 <p>
 <pre>
 irls =
