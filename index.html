@@ -214,7 +214,7 @@ including Broyden's quasi-Newton method as follows:
 #        g is the inverse link function.
 # Output: The model coefficients x.
 
-nnls_glm = function(A,b,g)
+nnls = function(A,b,g)
 {
   f = function(x) crossprod(b - g(A %*% x))[]
   optim(rep(0,ncol(A)), fn=f, method="BFGS")$par
