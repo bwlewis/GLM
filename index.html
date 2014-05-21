@@ -117,8 +117,8 @@ linear models. We need a few technical definitions to shore up this idea.
 
 <p>
 
-Let $\epsilon$ be
-a random variable with distribution function $F(\epsilon)$. The expected value $\mu$ and
+Let $\epsilon$ be a scalar-valued
+random variable with distribution function $F(\epsilon)$. The expected value $\mu$ and
 the variance $\sigma^2$ of $\epsilon$ are defined as:
 \[
 E(\epsilon) = \mu = \int_{-\infty}^{\infty} \epsilon dF(\epsilon),
@@ -220,6 +220,7 @@ nnls = function(A,b,g)
   optim(rep(0,ncol(A)), fn=f, method="BFGS")$par
 }
 </pre>
+Alternatively see R's nls function.
 
 If the entries of $e$ consist of uncorrelated random variables but with
 different variances, then $W\ne I$ but $W$ is still a diagonal matrix. This is
@@ -262,7 +263,8 @@ Model coefficients $x_{j+1}$.
 <br/>
 <hr>
 <p>
-It's remarkable how rapidly this simple algorithm converges. Before we dive in to
+It's remarkable how rapidly this simple algorithm typically converges.
+Before we dive in to
 details, let's look at one simple R implementation of this algorithm and
 compare it to R's <tt>glm</tt> function. The minimalist GLM function below
 (closer to R's <tt>glm.fit</tt>, really)
@@ -794,7 +796,7 @@ problems to reduce the number of variables.
 <p>
 
 We assume in this section and the next that although the model matrix $A$
-itself may not fit into memory, its crossproduct $A^TA$ does. Note that a dense
+itself may not fit into memory, its crossproduct $A^TA$ does. A dense
 double precision-valued  matrix of size $10000 \times 10000$ consumes about
 800 MB RAM. That's close to a practical working limit for typical desktop
 computers (in May, 2014), taking in to consideration data copies, etc. More
