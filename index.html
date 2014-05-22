@@ -330,19 +330,15 @@ IRLS solves a generalized linear model in each iteration:
 \[
 (A^T W A)^{-1} A^T W z.
 \]
-The problem is convex when $W$ is symmetric positive definite (positive
-diagonal entries when $W$ is diagonal) and
-equivalent to the (weighted) least squares problem:
+When $W$ is symmetric positive definite
+this is equivalent to the (weighted) least squares problem:
 \[
 \min||W^{1/2}(Ax - b)||^2.
 \]
-R's glm function allows diagonal entries of $W$ to become zero. It handles
-this by omitting data observations associated with zero weights from the
+R's glm function allows diagonal entries of $W$ to become zero,
+explicitly omitting data observations associated with zero weights from the
 computation.
-
-Looking at how the weight matrix $W$ is defined above, we see that this means
-that the derivative of the inverse link function $g'$ applied to $Ax_j$ must
-never vanish. Note that in the logistic regression case $g'(a) = g(a)(1-g(a))$
+Note that in the logistic regression case $g'(a) = g(a)(1-g(a))$
 is <i>never</i> zero.
 
 <p>
