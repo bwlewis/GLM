@@ -73,8 +73,8 @@ These are working notes. We'll continue to tweak and revise them.
 We begin by defining what we mean when we say "linear model" before moving on
 to GLMs. Our presentation and notation generally follow Bj&ouml;rk[2].
 Let $b\in\mathbb{R}^m, b\ne 0$ be a vector of measurements (called a response
-vector) and let $A\in\mathbb{R}^{m\times n}$, $\mathrm{rank}(A)=n$, be a matrix
-formed from data observations (called a model matrix).  Then
+vector) and let $A\in\mathbb{R}^{m\times n}$, $m\gen$, $\mathrm{rank}(A)=n$,
+be a matrix formed from data observations (called a model matrix).  Then
 \[
 Ax = b + e
 \]
@@ -516,7 +516,7 @@ R's native IRLS method embedded in its <tt>glm.fit</tt> function computes
 a QR decomposition of the weighted matrix $WA$ in each iteration step.
 O'Leary's <a href="#qrnewton">QR Newton method</a> shown above instead
 only computes one QR factorization of $A$ at the start. It then monitors
-possible rank deficiency by checking the size of the smallest diagonal
+possible numerical problems by checking the size of the smallest diagonal
 element of the weight matrix in each step.
 
 <p>
@@ -570,7 +570,7 @@ variation can be easily adapted to an SVD-based method that definitively
 determines the rank of the model matrix.
 
 <h4>Input</h4>
-Model matrix $A\in\mathbb{R}^{m\times n},\,\,m\le n$,
+Model matrix $A\in\mathbb{R}^{m\times n},\,\,m\ge n$,
 response vector $b\in\mathbb{R}^m$,
 inverse link function $g$ and its derivative $g'$,
 the variance $\mathrm{var}$ as a function of the mean associated with the
@@ -580,8 +580,8 @@ termination tolerance $\mathrm{tol}$, maximum number of iterations itmax.
 <ol style="list-style:none">
 <li class="lino"> Let $r=b$ (or possibly some other initial guess).
 <li class="lino"> Compute the SVD
-$AV = U\Sigma,\,\,\,\, U^TU = I,\,\,\, V^TV = I, \,\,\,\Sigma=\mathrm{diag}(\sigma_1\ge\sigma_2\ge\cdots\sigma_m\gt 0)$.
-<li class="lino">(If any $\sigma_j=0$ then $A$ is rank-deficient, stop and warn the user.)
+$AV = U\Sigma,\,\,\,\, U^TU = I,\,\,\, V^TV = I, \,\,\,\Sigma=\mathrm{diag}(\sigma_1\ge\sigma_2\ge\cdots\sigma_n\ge 0)$.
+<li class="lino">(If any $\sigma_j=0$ then $A$ is rank-deficient, stop and warn the user or take some other action.)
 <li> For $j=1,2,\ldots,\mathrm{itmax}$, do:
 <ol style="list-style:none;">
   <li class="lino"> Let $\eta = b - r$.
