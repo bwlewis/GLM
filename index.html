@@ -928,8 +928,8 @@ function(filename, chunksize, b, family=binomial, maxit=25, tol=1e-08)
 </pre>
 
 <p>
-Let's verify that this is a plausible method by recomputing
-our earlier example with the incremental method, first saving the
+Let's verify the plausibility of this by recomputing
+our earlier test example with the incremental method, first saving the
 model matrix to a data file to iterate over:
 <pre>
 data("Contraception",package="mlmRev")
@@ -957,6 +957,21 @@ livch2       0.854904050  0.854904050
 livch3+      0.806025052  0.806025052
 </font>
 </pre>
+Agreement with R again, at least to displayed accuracy for our test problem.
+
+<h2>Edge cases</h2>
+
+We have so far required:
+<ol>
+<li> That the model matrix is of full rank.
+<li> That the weight matrix $W$ is a diagonal matrix with positive diagonal entries.
+</ol>
+Both requirements are conservative.  It turns out that all is not lost when one
+or both requirements are not satisfied.  But we have to make some decisions
+about how to proceed. This section outlines possible approaches to solving
+these degenerate problems. We consider how R handles them and some alternative
+approaches.
+
 
 
 <h2>Distributed parallel computation of IRLS</h2>
