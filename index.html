@@ -45,10 +45,12 @@ high-performance implementations.
 
 <p>
 
-Our goal for this note is to highlight aspects of the GLM solution process
-that we find interesting.  We present very basic example solution
-implementations, most amounting to just a few lines of code.  We discuss
-details that enable the development of effective distributed parallel
+This note grew out of our own desire to better understand how to go about
+solving generalized linear models in practice.  We highlight aspects of GLM
+implementations that we find particularly interesting. We present some
+reference implementations stripped down to illuminate core ideas; most
+implementations presented here amount to just a few lines of code.  Finally, we
+discuss details that enable the development of effective distributed parallel
 implementations suitable for solution of large-scale problems.
 
 <p>
@@ -59,10 +61,10 @@ GLM implementations in our opinion.
 
 <h2>Disclaimer</h2>
 <p>
-This is <i>not</i> a formal introduction to GLMs.  We focus on illuminating
-just a few key ideas, mostly from a numerical point of view and often focusing
-on performance and scalability. We refer the reader to the references [3,5,8,10]
-for complete introductions to linear models.
+This is <i>not</i> a formal introduction to GLMs.  We discuss
+a few key implementation ideas, focusing on numerics, performance and
+scalability. We refer the reader to the references [3,5,8,10] for complete
+introductions to linear models.
 
 <p>
 
@@ -963,14 +965,15 @@ Agreement with R again, at least to displayed accuracy for our test problem.
 
 We have so far required:
 <ol>
-<li> That the model matrix is of full rank.
-<li> That the weight matrix $W$ is a diagonal matrix with positive diagonal entries.
+<li> The model matrix to be of full rank.
+<li> The weight matrix $W$ to be a diagonal matrix with positive diagonal entries.
 </ol>
-Both requirements are conservative.  It turns out that all is not lost when one
-or both requirements are not satisfied.  But we have to make some decisions
-about how to proceed. This section outlines possible approaches to solving
+Both requirements are conservative, and we can solve problems where one or both
+requirements are not satisfied.  But we have to make some decisions about how
+to proceed in such cases. This section outlines possible approaches to solving
 these degenerate problems. We consider how R handles them and some alternative
 approaches.
+
 
 
 
