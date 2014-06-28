@@ -269,7 +269,7 @@ It's remarkable how rapidly this simple algorithm typically converges.
 Before we dive in to
 details, let's look at one simple R implementation of this algorithm and
 compare it to R's <tt>glm</tt> function. The minimalist GLM function below
-(closer to R's <tt>glm.fit</tt>, really)
+(compare to R's <tt>glm.fit</tt> function)
 takes as input a model matrix $A$, a response vector $b$, an R distribution family
 object, and optional maximum number of iterations and tolerance values.
 (This is the shortest GLM implementation we could come up with! But it's got
@@ -337,11 +337,11 @@ this is equivalent to the (weighted) least squares problem:
 \[
 \min||W^{1/2}(Ax - b)||^2.
 \]
-R's glm function allows diagonal entries of $W$ to become zero,
-explicitly omitting data observations associated with zero weights from the
-computation.
 Note that in the logistic regression case $g'(a) = g(a)(1-g(a))$
-is <i>never</i> zero.
+is <i>never</i> zero, but other link functions might
+lead to degenerate cases with indefinite weighting matrices.
+We'll discuss approaches to dealing with some exceptional cases like this
+in the <a href="#edge">Edge cases</a> section below.
 
 <p>
 
@@ -362,7 +362,8 @@ algorithm above) is potentially numerically unstable and not generally advised.
 The brief survey in Bj&ouml;rk is really fascinating reading. His cited references
 show us that even standard Householder QR decomposition can give poor accuracy
 for stiff problems unless it's modified to include column <i>and</i> row
-pivoting. It turns out that the simplest numerically stable implementation for
+pivoting. It turns out that the perhaps
+the simplest numerically stable implementation for
 solving the linear system within the IRLS method is the Givens QR algorithm,
 shown by Anda and Park[1].
  
@@ -372,9 +373,10 @@ In practice, with judicious monitoring of the entries of $W$ (in particular the
 stiffness $\max_j(W_{j,j})/\min_j(W_{j,j})$) and the quantities $g'(\eta)$ and
 $\mathrm{var}(g(\eta))$, we can choose among the most stable and convenient
 solution methods and simply warn the user when the algorithm gets into trouble
-numerically. This is indeed what R does in its own <tt>glm.fit</tt>
-implementation, which uses a Householder QR decomposition of $WA$ with column
-pivoting, modified to reveal the rank of the matrix at each step.
+numerically.  R achieves this in its own <tt>glm.fit</tt> implementation by
+using a Householder QR decomposition of $WA$ with column pivoting, modified to
+reveal the rank of the matrix at each step.
+See <a href="#edge">Edge cases</a> section below for a discussion of this topic.
 
 
 <h3>Connection to ordinary least squares</h3>
@@ -481,7 +483,7 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
     W      = as.vector(gprime^2 / family()$variance(g))
     wmin   = min(W)
     if(wmin < sqrt(.Machine$double.eps))
-      warning("Tiny weights encountered, likely numerical problems!")
+      warning("Tiny weights encountered!")
     rold   = r
     C   = chol(crossprod(Q, W*Q))
     s   = forwardsolve(t(C), crossprod(Q,W*z))
@@ -589,7 +591,7 @@ $AV = U\Sigma,\,\,\,\, U^TU = I,\,\,\, V^TV = I, \,\,\,\Sigma=\mathrm{diag}(\sig
   <li class="lino"> Let $\eta = b - r$.
   <li class="lino"> Let $z = \eta + \frac{b - g(\eta)}{g'(\eta)},\qquad$
   <li class="lino"> Let $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta)))$.
-  <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small error out or warn the user.
+  <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small warn the user.
   <li class="lino"> Let $r_{old} = r$.
   <li class="lino"> Let $r = b - U(U^T W U)^{-1}U^T W z.$
   <li class="lino"> (Solve with a Cholesky factorization of $U^T W U$.)
@@ -605,9 +607,33 @@ Model coefficients $x$.
 Similarly to the QR Newton method listed above, the SVD-based method only uses
 the orthonormal $U$ matrix and the current weighting matrix in each iteration.
 A side-benefit of the SVD is that the final solution for model coefficients
-no longer requires a backsolve. This is Bryan's personal favorite IRLS
-implementation. An R implementation of this algorithm is available in the
-<tt>implementations.R</tt> file in the Github repository.
+no longer requires a backsolve.
+
+This is Bryan's personal favorite IRLS implementation. It takes advantage
+of available fast numeric libraries and provides a straightforward path
+for dealing with rank-deficient problems. An R implementation of
+this algorithm is available in the <tt>implementations.R</tt> file in the
+Github repository.
+
+
+
+<h3>Edge cases</h3>
+<a name="edge" class="anchor" href="#edge"></a>
+
+We have so far required:
+<ol>
+<li> The model matrix to be of full rank.
+<li> The weight matrix $W$ to be a diagonal matrix with positive diagonal entries.
+</ol>
+Both requirements are conservative, and we can solve problems where one or both
+requirements are not satisfied.  But we have to make some decisions about how
+to proceed in such cases. This section outlines possible approaches to solving
+these degenerate problems. We consider how R handles them and some alternative
+approaches.
+
+
+
+
 
 
 <h3>
@@ -960,21 +986,6 @@ livch3+      0.806025052  0.806025052
 </font>
 </pre>
 Agreement with R again, at least to displayed accuracy for our test problem.
-
-<h2>Edge cases</h2>
-
-We have so far required:
-<ol>
-<li> The model matrix to be of full rank.
-<li> The weight matrix $W$ to be a diagonal matrix with positive diagonal entries.
-</ol>
-Both requirements are conservative, and we can solve problems where one or both
-requirements are not satisfied.  But we have to make some decisions about how
-to proceed in such cases. This section outlines possible approaches to solving
-these degenerate problems. We consider how R handles them and some alternative
-approaches.
-
-
 
 
 <h2>Distributed parallel computation of IRLS</h2>
