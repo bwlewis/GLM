@@ -644,15 +644,15 @@ useful examples and important literature references.
 R's <tt>glm</tt> and <tt>glm.fit</tt> functions handle rank-deficient model
 matrices by column subset selection.  In particular when ordering the model
 matrix columns from left to right, all columns in the span of columns to the
-left are omitted from the model.  Their corresponding model coefficients are
-marked missing (<tt>NA</tt>) by R. That's a nice convention because it
+left are omitted from the model and their corresponding model coefficients are
+marked missing (<tt>NA</tt>). That's a nice convention because it
 clearly alerts users to rank-deficiency in their model.
 <p>
 Consider the following simple illustration that rigs the model matrix to
-be rank-deficient:
+be rank deficient:
 <pre>
-a = data.frame(v1=c(1,0,0,0,0),v2=factor(c(1,2,0,0,0)),x=1:5)
-(m = glm(x ~ ., data=a, x=TRUE))
+a = data.frame(v1=c(1,0,0,0,0), v2=factor(c(1,2,0,0,0)), z=1:5)
+(m = glm(z ~ ., data=a, x=TRUE))
 <font color="#00a">
 Coefficients:
 (Intercept)           v1          v21          v22  
@@ -674,15 +674,60 @@ print(m$x)
 </pre>
 In this simple example, the model matrix column associated with factor level
 1 in the variable v2 (a so-called <i>treatment contrast</i> variable)
-leads to a rank-deficiency, and the corresponding
+lies in the span of the previous (to the left) column, and so the corresponding
 model matrix column was removed and corresponding model coefficient marked
 <tt>NA</tt>.
 
 <p>
 A consequence of R's approach to handling model matrix rank deficiency is that
 model results <i>depend on the ordering of model matrix columns</i>.
-This observation is perhaps best illustrated with a simple pathological
-example.
+This observation is perhaps best illustrated with a simple example.
+<pre>
+# Create an obviously rank-deficient matrix:
+A = matrix(c(1,0,0,1,1,2,3,2,4), nrow=3)
+<font color="#00a">
+     [,1] [,2] [,3]
+[1,]    1    1    3
+[2,]    0    1    2
+[3,]    0    2    4
+</font>
+# Let's solve an ordinary least-squares problem with right hand side c(1,2,3):
+x = coef( glm.fit(A, c(1,2,3)) )<font color="#00a">
+[1] -0.6  1.6   NA
+</font>
+
+# OK, let's now permute the colunms of the matrix and repeat:
+
+A = A[, c(1,3,2)]
+<font color="#00a">
+     [,1] [,2] [,3]
+[1,]    1    3    1
+[2,]    0    2    1
+[3,]    0    4    2
+</font>
+x = coef( glm.fit(A, c(1,2,3)) )<font color="#00a">
+[1] -1.4  0.8   NA</font>
+</pre>
+Note that both solutions provided in this example are perfectly reasonable
+least squares solutions&mdash;the problem itself is not well-defined.
+Indeed, there are an infinite number of least-squares solutions to choose
+from in this example.
+<p>
+
+R users should be aware however that R makes a choice of particular solution
+based on the ordering of the model matrix columns. Fortunately, the appearance
+of <tt>NA</tt> in the solution alerts users that the model matrix is
+rank deficient.
+<p>
+
+In our opinion, when users see a result like this they should step back and
+think about the problem carefully. We recommend a more systematic variable
+selection process like the elastic net [12].  Another reasonable alternative
+approach is to add additional constraints to make the problem convex&mdash;for
+example requiring that the least squares solution be of minimal norm. That
+alternative is available in the SVD-based routine outlined later in this
+section.
+
 
 <h4>How R handles zero diagonal entries in the weight matrix</h4>
 
@@ -1067,6 +1112,7 @@ Agreement with R again, at least to displayed accuracy for our test problem.
 <li> Paige, C. C., Fast numerically stable computations for generalized least squares problems, Siam J. Num. Anal., 16, 1979, pp. 165-171.
 <li> The R project <a href="http://www.r-project.org">http://www.r-project.org</a>.
 <li> Revolution Analytics <a href="http://revolutionanalytics.com">http://revolutionanalytics.com</a>.
+<li> Zhou, H. and Hastie, T., Regularization and Variable Selection via the Elastic Net, J. Royal Statistical Society, B, 2005, pp. 301-320.
 </ol>
 </secion>
 </div>
