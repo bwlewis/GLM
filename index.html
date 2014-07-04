@@ -691,7 +691,7 @@ illustrative example:
 <font color="#00a">
 [1]  15000002 -15000000        NA
 </font>
-# Now permute the columns of A and sove the same problem (very different results!):
+# Now permute the columns of A and solve again (very different results!):
 
 ( A = A[, c(1,3,2)] )
 <font color="#00a">
@@ -715,16 +715,18 @@ illustrative example:
 [1]  2.5   NA -1.5 </font>
 </pre>
 
-Note that both solutions provided in this example are perfectly reasonable
-least squares solutions&mdash;the problem itself is not well-defined.
-Indeed, there are an infinite number of least-squares solutions to choose
-from in this example.
+Note that all the solutions found in the previous example are perfectly
+reasonable least squares solutions&mdash;it's just that the problem itself is
+not well-defined.  Indeed, there are an infinite number of least-squares
+solutions to choose from in this example.
+
 <p>
 
 R users should be aware however that R makes a choice of particular solution
 based on the ordering of the model matrix columns. Fortunately, the appearance
 of <tt>NA</tt> in the solution alerts users that the model matrix is
 rank deficient.
+
 <p>
 
 In our opinion, when users see a result like this they should step back and
