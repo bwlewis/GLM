@@ -660,8 +660,8 @@ each step of the IRLS iteration.  The strategy proceeds columnwise and
 checks if the norm of the subdiagonal of a QR-transformed column falls
 below a tolerance factor times norm of the subdiagonal of the corresponding
 original model matrix column. If the transformed sub-column norm is too small
-then the column is pivoted to the end of the matrix and omitted from the model.
-The tolerance is <tt>min(1e-7,
+then the column is pivoted to the right-most edge of the matrix and omitted
+from the model.  The tolerance is <tt>min(1e-7,
 epsilon/1000)</tt>, where epsilon is defined by the <tt>control</tt> argument
 to the <tt>glm.fit</tt> function (with a default value of
 <tt>epsilon=1e-8</tt>).
@@ -687,31 +687,27 @@ illustrative example:
 [2,]    1 1.0000000    0
 [3,]    1 1.0000000    0
 </font>
-( glm.fit(A,b)$coef )
-<font color="#00a">
+( glm.fit(A, b)$coef )<font color="#00a">
 [1]  15000002 -15000000        NA
 </font>
 # Now permute the columns of A and solve again (very different results!):
 
-( A = A[, c(1,3,2)] )
+( A_permuted = A[, c(1,3,2)] )
 <font color="#00a">
      [,1] [,2]      [,3]
 [1,]    1    1 1.0000001
 [2,]    1    0 1.0000000
 [3,]    1    0 1.0000000
 </font>
-( glm.fit(A,b)$coef )
-<font color="#00a">
+( glm.fit(A_permuted, b)$coef )<font color="#00a">
 [1]  2.5 -1.5   NA
 </font>
 
 # We can also see the effect of the pivoting strategy column selection on this
-# problem by setting the tolerance to its minimum (setting epsilon large
-# results in the minimum tolerance of 1e-7):
+# problem by setting the tolerance to its maximum (setting epsilon large
+# results in the maximum tolerance of 1e-7):
 
-  A = matrix(c(1,1,1, 1+1e-7,1,1, 1,0,0), ncol=3)
-( glm.fit(A,b, control=list(epsilon=1))$coef )
-<font color="#00a">
+( glm.fit(A, b, control=list(epsilon=1))$coef )<font color="#00a">
 [1]  2.5   NA -1.5 </font>
 </pre>
 
@@ -723,9 +719,9 @@ solutions to choose from in this example.
 <p>
 
 R users should be aware however that R makes a choice of particular solution
-based on the ordering of the model matrix columns. Fortunately, the appearance
-of <tt>NA</tt> in the solution alerts users that the model matrix is
-rank deficient.
+based on the ordering of the model matrix columns and pivoting strategy.
+Fortunately, the appearance of <tt>NA</tt> in the solution alerts users that
+the model matrix is rank deficient.
 
 <p>
 
