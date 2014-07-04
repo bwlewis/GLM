@@ -424,7 +424,7 @@ Algorithm IRLS (QR Newton variant)
 </h3>
 <p>
 This method was defined by O'Leary[9]. The idea is to compute a QR
-factorization of the model matrix $A$ just once, possibly by a rank-revealing
+factorization of the model matrix $A$ once, possibly by a rank-revealing
 QR method to identify problematic model matrices at the start. The
 factorization is then used in the IRLS iteration.
 
@@ -454,7 +454,7 @@ in the algorithm.
   <li class="lino"> Let $\eta = b - r$.
   <li class="lino"> Let $z = \eta + \frac{b - g(\eta)}{g'(\eta)},\qquad$
   <li class="lino"> Let $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta)))$.
-  <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small error out or warn the user.
+  <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small warn the user or see the <a href="#edge">Edge cases</a> section below.
   <li class="lino"> Let $r_{old} = r$.
   <li class="lino"> Let $r = b - A(A^T W A)^{-1} A^T W z = b - Q(Q^T W Q)^{-1}Q^T W z.$
   <li class="lino"> (Solve with a Cholesky factorization of $Q^T W Q$.)
@@ -483,7 +483,7 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
     W      = as.vector(gprime^2 / family()$variance(g))
     wmin   = min(W)
     if(wmin < sqrt(.Machine$double.eps))
-      warning("Tiny weights encountered!")
+      warning("Tiny weights encountered!") # (Or, see Edge cases below)
     rold   = r
     C   = chol(crossprod(Q, W*Q))
     s   = forwardsolve(t(C), crossprod(Q,W*z))
@@ -591,7 +591,7 @@ $AV = U\Sigma,\,\,\,\, U^TU = I,\,\,\, V^TV = I, \,\,\,\Sigma=\mathrm{diag}(\sig
   <li class="lino"> Let $\eta = b - r$.
   <li class="lino"> Let $z = \eta + \frac{b - g(\eta)}{g'(\eta)},\qquad$
   <li class="lino"> Let $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta)))$.
-  <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small warn the user.
+  <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small warn the user or see the <a href="#edge">Edge cases</a> section below.
   <li class="lino"> Let $r_{old} = r$.
   <li class="lino"> Let $r = b - U(U^T W U)^{-1}U^T W z.$
   <li class="lino"> (Solve with a Cholesky factorization of $U^T W U$.)
@@ -609,6 +609,8 @@ the orthonormal $U$ matrix and the current weighting matrix in each iteration.
 A side-benefit of the SVD is that the final solution for model coefficients
 no longer requires a backsolve.
 
+<p>
+
 This is Bryan's personal favorite IRLS implementation. It takes advantage
 of available fast numeric libraries and provides a straightforward path
 for dealing with rank-deficient problems. An R implementation of
@@ -616,98 +618,103 @@ this algorithm is shown in the following section.
 
 
 
-<h3>Edge cases</h3>
+<h3>
 <a name="edge" class="anchor" href="#edge"></a>
+Edge cases
+</h3>
 
 We have so far required:
 <ol>
-<li> The model matrix to be of full rank.
+<li> The model matrix to be of full rank (and have at least as many rows as columns).
 <li> The weight matrix $W$ to be a diagonal matrix with positive diagonal
 entries.
 </ol>
 Both requirements are conservative; we <i>can</i> solve problems where one or
 both requirements are not satisfied.  But we have to make some decisions about
 how to proceed in such cases. This section outlines possible approaches to
-solving these degenerate problems. We consider how R handles them and some
+solving degenerate problems. We consider how R handles them and some
 alternative approaches.
 
 <h4>What does R do?</h4>
 
-The title of this section is a great question to keep in mind when faced with
-questions about algorithm implementations. R is a vibrant open-source software
-project, carefully written and actively used and reviewed over decades. R's
-core algorithm implementations are carefully thought out and equipped with
-useful examples and important literature references.
+Consulting the R language is always a good idea when faced with questions about
+algorithm implementations. R is a vibrant open-source software project of
+exceptional numeric quality that has been written and actively used and
+reviewed over decades. R's core algorithm implementations are carefully thought
+out and equipped with useful examples and important literature references.
 
 <h4>How R handles rank deficiency in a model matrix</h4>
 
-R's <tt>glm</tt> and <tt>glm.fit</tt> functions handle rank-deficient model
-matrices by column subset selection.  In particular when ordering the model
-matrix columns from left to right, all columns in the span of columns to the
-left are omitted from the model and their corresponding model coefficients are
-marked missing (<tt>NA</tt>). That's a nice convention because it
-clearly alerts users to rank-deficiency in their model.
-<p>
-Consider the following simple illustration that rigs the model matrix to
-be rank deficient:
-<pre>
-a = data.frame(v1=c(1,0,0,0,0), v2=factor(c(1,2,0,0,0)), z=1:5)
-(m = glm(z ~ ., data=a, x=TRUE))
-<font color="#00a">
-Coefficients:
-(Intercept)           v1          v21          v22  
-          4           -3           NA           -2  
-
-Degrees of Freedom: 4 Total (i.e. Null);  2 Residual
-Null Deviance:      10 
-Residual Deviance: 2    AIC: 17.61
-</font>
-# The model matrix for this model is (note that glm added an intercept term):
-print(m$x)
-<font color="#00a">
-  (Intercept) v1 v21 v22
-1           1  1   1   0
-2           1  0   0   1
-3           1  0   0   0
-4           1  0   0   0
-5           1  0   0   0</font>
-</pre>
-In this simple example, the model matrix column associated with factor level
-1 in the variable v2 (a so-called <i>treatment contrast</i> variable)
-lies in the span of the previous (to the left) column, and so the corresponding
-model matrix column was removed and corresponding model coefficient marked
-<tt>NA</tt>.
+R's core <tt>glm.fit</tt> function handles rank-deficient model matrices by
+selecting a subset of columns that are linearly independent.  Model
+coefficients corresponding to model matrix columns that have been omitted from
+the model are marked missing (<tt>NA</tt>).  That's a good convention because
+it clearly alerts users to rank-deficiency in their model.
 
 <p>
-A consequence of R's approach to handling model matrix rank deficiency is that
-model results <i>depend on the ordering of model matrix columns</i>.
-This observation is perhaps best illustrated with a simple example.
+
+Column subset selection is achieved by a pivoting strategey defined in the R's
+internal <tt>dqrdc2</tt> Fortran subroutine.  The strategy applies a
+Householder QR method with column pivoting to the weighted model matrix $WA$ in
+each step of the IRLS iteration.  The strategy proceeds columnwise and
+checks if the norm of the subdiagonal of a QR-transformed column falls
+below a tolerance factor times norm of the subdiagonal of the corresponding
+original model matrix column. If the transformed sub-column norm is too small
+then the column is pivoted to the end of the matrix and omitted from the model.
+The tolerance is <tt>min(1e-7,
+epsilon/1000)</tt>, where epsilon is defined by the <tt>control</tt> argument
+to the <tt>glm.fit</tt> function (with a default value of
+<tt>epsilon=1e-8</tt>).
+
+<p>
+
+A consequence the sequential nature of R's column subset selection strategy is
+that model results <i>depend on the ordering of model matrix columns</i>, as
+well as pivoting choices.  In general, up to pivoting, model matrix columns to
+the left are preferred for inclusion. Let's investigate with a contrived but
+illustrative example:
+
 <pre>
-# Create an obviously rank-deficient matrix:
-A = matrix(c(1,0,0,1,1,2,3,2,4), nrow=3)
+# Create a rank-deficient matrix A (rank 2) and a test observation vector b:
+# (In addition to low rank, observe that the 2nd column is close to the 1st column.)
+
+  options(digits=8)
+  b = c(1,2,3)
+( A = matrix(c(1,1,1, 1+1e-7,1,1, 1,0,0), ncol=3) )
 <font color="#00a">
-     [,1] [,2] [,3]
-[1,]    1    1    3
-[2,]    0    1    2
-[3,]    0    2    4
+     [,1]      [,2] [,3]
+[1,]    1 1.0000001    1
+[2,]    1 1.0000000    0
+[3,]    1 1.0000000    0
 </font>
-# Let's solve an ordinary least-squares problem with right hand side c(1,2,3):
-x = coef( glm.fit(A, c(1,2,3)) )<font color="#00a">
-[1] -0.6  1.6   NA
+( glm.fit(A,b)$coef )
+<font color="#00a">
+[1]  15000002 -15000000        NA
+</font>
+# Now permute the columns of A and sove the same problem (very different results!):
+
+( A = A[, c(1,3,2)] )
+<font color="#00a">
+     [,1] [,2]      [,3]
+[1,]    1    1 1.0000001
+[2,]    1    0 1.0000000
+[3,]    1    0 1.0000000
+</font>
+( glm.fit(A,b)$coef )
+<font color="#00a">
+[1]  2.5 -1.5   NA
 </font>
 
-# OK, let's now permute the colunms of the matrix and repeat:
+# We can also see the effect of the pivoting strategy column selection on this
+# problem by setting the tolerance to its minimum (setting epsilon large
+# results in the minimum tolerance of 1e-7):
 
-A = A[, c(1,3,2)]
+  A = matrix(c(1,1,1, 1+1e-7,1,1, 1,0,0), ncol=3)
+( glm.fit(A,b, control=list(epsilon=1))$coef )
 <font color="#00a">
-     [,1] [,2] [,3]
-[1,]    1    3    1
-[2,]    0    2    1
-[3,]    0    4    2
-</font>
-x = coef( glm.fit(A, c(1,2,3)) )<font color="#00a">
-[1] -1.4  0.8   NA</font>
+[1]  2.5   NA -1.5 </font>
 </pre>
+
 Note that both solutions provided in this example are perfectly reasonable
 least squares solutions&mdash;the problem itself is not well-defined.
 Indeed, there are an infinite number of least-squares solutions to choose
@@ -721,15 +728,22 @@ rank deficient.
 <p>
 
 In our opinion, when users see a result like this they should step back and
-think about the problem carefully. We recommend a more systematic variable
-selection process like the elastic net [12].  Another reasonable alternative
-approach is to add additional constraints to make the problem convex&mdash;for
-example requiring that the least squares solution be of minimal norm. That
-alternative is available in the SVD-based routine outlined later in this
-section.
+think about the problem carefully. We recommend a systematic variable selection
+process like the elastic net [12].  Another reasonable alternative approach is
+to add additional constraints to make the problem convex&mdash;for example,
+requiring that the least squares solution be of minimal norm. That alternative
+is available in the SVD-based routine outlined later in this section.
 
 
 <h4>How R handles zero diagonal entries in the weight matrix</h4>
+
+R keeps track of observations (rows in the model matrix) corresponding to zero
+weights by omitting them from the model.
+
+<h4>Too few observations</h4>
+
+If the total number of rows in the model matrix falls below its column rank, R
+reasonably terminates the modeling process with an error.
 
 <p>
 <h4>SVD Newton R implementation</h4>
