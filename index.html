@@ -428,14 +428,6 @@ factorization of the model matrix $A$ once, possibly by a rank-revealing
 QR method to identify problematic model matrices at the start. The
 factorization is then used in the IRLS iteration.
 
-<p>
-It turns out that IRLS iterations that rely on factored forms of the model
-matrix can be made more computationally stable and efficient by updating the
-residual error vector instead of the model coefficients. The idea is to let
-$r = b - Ax$ for some initial guess of $x$, iteratively update $r$ by IRLS,
-and then solve the consistent linear system $Ax = b - r$ for $x$. Here is the
-method:
-
 <h4>Input</h4>
 Model matrix $A\in\mathbb{R}^{m\times n}$,
 response vector $b\in\mathbb{R}^m$,
@@ -447,20 +439,19 @@ We also require a sense of "too small" for the numerical checks indicated
 in the algorithm.
 <p>
 <ol style="list-style:none">
-<li class="lino"> Let $r=b$ (or possibly some other initial guess).
+<li class="lino"> Let $t=0\cdot b$ (or possibly some other initial guess).
 <li class="lino"> Compute $A = QR$.
 <li> For $j=1,2,\ldots,\mathrm{itmax}$, do:
 <ol style="list-style:none;">
-  <li class="lino"> Let $\eta = b - r$.
-  <li class="lino"> Let $z = \eta + \frac{b - g(\eta)}{g'(\eta)},\qquad$
-  <li class="lino"> Let $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta)))$.
+  <li class="lino"> Let $z = t + \frac{b - g(t)}{g'(t)},\qquad$
+  <li class="lino"> Let $W = \mathrm{diag}(g'(t)^2/\mathrm{var}(g(t)))$.
   <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small warn the user or see the <a href="#edge">Edge cases</a> section below.
-  <li class="lino"> Let $r_{old} = r$.
-  <li class="lino"> Let $r = b - A(A^T W A)^{-1} A^T W z = b - Q(Q^T W Q)^{-1}Q^T W z.$
+  <li class="lino"> Let $t_{old} = t$.
+  <li class="lino"> Let $t = A(A^T W A)^{-1} A^T W z = Q(Q^T W Q)^{-1}Q^T W z.$
   <li class="lino"> (Solve with a Cholesky factorization of $Q^T W Q$.)
-  <li> Exit for loop if $||r_{old} - r|| \lt \mathrm{tol}$.
+  <li> Exit for loop if $||t_{old} - t|| \lt \mathrm{tol}$.
 </ol>
-<li class="lino"> Solve $R x = Q^T(b - r)$ for $x$ (simple backsolve).
+<li class="lino"> Solve $R x = Q^T t$ for $x$ (simple backsolve).
 </ol>
 <h4>Output</h4>
 Model coefficients $x$.
@@ -470,28 +461,27 @@ Model coefficients $x$.
 irls_qrnewton =
 function(A, b, family=binomial, maxit=25, tol=1e-08)
 {
-  r  = b
+  e  = 0
   QR = qr(A)
   Q  = qr.Q(QR)
   R  = qr.R(QR)
   for(j in 1:maxit)
   {
-    eta    = b - r
-    g      = family()$linkinv(eta)
-    gprime = family()$mu.eta(eta)
-    z      = eta + (b - g) / gprime
+    g      = family()$linkinv(e)
+    gprime = family()$mu.eta(e)
+    z      = e + (b - g) / gprime
     W      = as.vector(gprime^2 / family()$variance(g))
     wmin   = min(W)
     if(wmin < sqrt(.Machine$double.eps))
-      warning("Tiny weights encountered!") # (Or, see Edge cases below)
-    rold   = r
+      warning("Tiny weights encountered")
+    eold   = e
     C   = chol(crossprod(Q, W*Q))
     s   = forwardsolve(t(C), crossprod(Q,W*z))
     s   = backsolve(C,s)
-    r      = b - Q %*% s
-    if(sqrt(crossprod(r-rold)) < tol) break
+    e      = Q %*% s
+    if(sqrt(crossprod(e - eold)) < tol) break
   }
-  x = backsolve(R, crossprod(Q,b-r))
+  x = backsolve(R, crossprod(Q,e))
   list(coefficients=x,iterations=j)
 }
 </pre>
@@ -790,7 +780,7 @@ terminates the modeling process with an error.
 SVD Newton R implementation
 </h4>
 
-We outlint an R implementation of our favorite GLM solution method, the <a
+We outline an R implementation of our favorite GLM solution method, the <a
 href="#svdnewton">SVD Newton</a> variant of O'Leary's QR Newton method
 discussed above. The implementation is equipped to handle the numerical
 pitfalls discussed above in numerically stable ways with a variety of
@@ -1156,7 +1146,9 @@ livch3+      0.806025052  0.806025052
 Agreement with R again, at least to displayed accuracy for our test problem.
 
 
-<h2>Distributed parallel computation of IRLS</h2>
+<h2>Distributed parallel computation of IRLS I</h2>
+
+<h2>Distributed parallel computation of IRLS II</h2>
 
 
 </section>
