@@ -448,7 +448,7 @@ in the algorithm.
   <li class="lino"> Let $W = \mathrm{diag}(g'(t)^2/\mathrm{var}(g(t)))$.
   <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small warn the user or see the <a href="#edge">Edge cases</a> section below.
   <li class="lino"> Let $s_{old} = s$.
-  <li class="lino"> Let $s = (Q^T W Q)^{-1}Q^T W z.$ (Solve with a Cholesky factorization of $Q^T W Q$.)
+  <li class="lino"> Let $s = (Q^T W Q)^{-1}Q^T W z$ (solve with a Cholesky factorization of $Q^T W Q$.)
   <li class="lino"> Let $t = A(A^T W A)^{-1} A^T W z = Q s.$
   <li> Exit for loop if $||s_{old} - s|| \lt \mathrm{tol}$.
 </ol>
@@ -584,7 +584,7 @@ $AV = U\Sigma,\,\,\,\, U^TU = I,\,\,\, V^TV = I, \,\,\,\Sigma=\mathrm{diag}(\sig
   <li class="lino"> Let $W = \mathrm{diag}(g'(t)^2/\mathrm{var}(g(t)))$.
   <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small warn the user or see the <a href="#edge">Edge cases</a> section below.
   <li class="lino"> Let $s_{old} = s$.
-  <li class="lino"> Let $s = (U^T W U)^{-1}U^T W z$ (Solve with a Cholesky factorization of $U^T W U$.)
+  <li class="lino"> Let $s = (U^T W U)^{-1}U^T W z$ (solve with a Cholesky factorization of $U^T W U$.)
   <li class="lino"> Let $t = U s.$ 
   <li> Exit for loop if $||s_{old} - s|| \lt \mathrm{tol}$.
 </ol>
