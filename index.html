@@ -640,16 +640,17 @@ alternative approaches.
 Consulting the R language is always a good idea when faced with questions about
 algorithm implementations. R is a vibrant open-source software project of
 exceptional numeric quality that has been written and actively used and
-reviewed over decades. R's core algorithm implementations are carefully thought
-out and equipped with useful examples and important literature references.
+reviewed over <i>decades</i>.
+R's core algorithm implementations are carefully thought
+out and equipped with useful examples and superb literature references.
 
 <h4>How R handles rank deficiency in a model matrix</h4>
 
 R's core <tt>glm.fit</tt> function handles rank-deficient model matrices by
 selecting a subset of columns that are linearly independent.  Model
 coefficients corresponding to model matrix columns that have been omitted from
-the model are marked missing (<tt>NA</tt>).  That's a good convention because
-it clearly alerts users to rank-deficiency in their model.
+the model are marked missing (<tt>NA</tt>).  <b>That's a good convention because
+it clearly alerts users to rank-deficiency in their model.</b>
 
 <p>
 
@@ -781,11 +782,22 @@ presence of stiff problems.
 If the total number of rows in the model matrix falls below its column rank, R
 terminates the modeling process with an error.
 
+
+
 <p>
 <h4>
 <a name="SVD" class="anchor" href="#SVD"></a>
 SVD Newton R implementation
 </h4>
+
+We outlint an R implementation of our favorite GLM solution method, the <a
+href="#svdnewton">SVD Newton</a> variant of O'Leary's QR Newton method
+discussed above. The implementation is equipped to handle the numerical
+pitfalls discussed above in numerically stable ways with a variety of
+user-controlled options, and it relies on standard BLAS and LAPACK routines.
+The method computes a single (expensive) model matrix decomposition at the
+start, unlike R's default method that computes a (expensive) Householder QR
+decomposition in each IRLS iteration.
 
 
 
