@@ -440,16 +440,17 @@ in the algorithm.
 <p>
 <ol style="list-style:none">
 <li class="lino"> Let $t=0\cdot b$ (or possibly some other initial guess).
+<li class="lino"> Let $s=0\cdot x$.
 <li class="lino"> Compute $A = QR$.
 <li> For $j=1,2,\ldots,\mathrm{itmax}$, do:
 <ol style="list-style:none;">
   <li class="lino"> Let $z = t + \frac{b - g(t)}{g'(t)},\qquad$
   <li class="lino"> Let $W = \mathrm{diag}(g'(t)^2/\mathrm{var}(g(t)))$.
   <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small warn the user or see the <a href="#edge">Edge cases</a> section below.
-  <li class="lino"> Let $t_{old} = t$.
-  <li class="lino"> Let $t = A(A^T W A)^{-1} A^T W z = Q(Q^T W Q)^{-1}Q^T W z.$
-  <li class="lino"> (Solve with a Cholesky factorization of $Q^T W Q$.)
-  <li> Exit for loop if $||t_{old} - t|| \lt \mathrm{tol}$.
+  <li class="lino"> Let $s_{old} = s$.
+  <li class="lino"> Let $s = (Q^T W Q)^{-1}Q^T W z.$ (Solve with a Cholesky factorization of $Q^T W Q$.)
+  <li class="lino"> Let $t = A(A^T W A)^{-1} A^T W z = Q s.$
+  <li> Exit for loop if $||s_{old} - s|| \lt \mathrm{tol}$.
 </ol>
 <li class="lino"> Solve $R x = Q^T t$ for $x$ (simple backsolve).
 </ol>
@@ -461,7 +462,7 @@ Model coefficients $x$.
 irls_qrnewton =
 function(A, b, family=binomial, maxit=25, tol=1e-08)
 {
-  t  = 0
+  s = t  = 0
   QR = qr(A)
   Q  = qr.Q(QR)
   R  = qr.R(QR)
@@ -474,12 +475,12 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
     wmin   = min(W)
     if(wmin < sqrt(.Machine$double.eps))
       warning("Tiny weights encountered")
-    told   = t
+    s_old   = s
     C   = chol(crossprod(Q, W*Q))
     s   = forwardsolve(t(C), crossprod(Q,W*z))
     s   = backsolve(C,s)
     t      = Q %*% s
-    if(sqrt(crossprod(t - told)) < tol) break
+    if(sqrt(crossprod(s - s_old)) < tol) break
   }
   x = backsolve(R, crossprod(Q,t))
   list(coefficients=x,iterations=j)
@@ -573,6 +574,7 @@ termination tolerance $\mathrm{tol}$, maximum number of iterations $\mathrm{itma
 <p>
 <ol style="list-style:none">
 <li class="lino"> Let $t=0\cdot b$ (or possibly some other initial guess).
+<li class="lino"> Let $s=0\cdot x$.
 <li class="lino"> Compute the SVD
 $AV = U\Sigma,\,\,\,\, U^TU = I,\,\,\, V^TV = I, \,\,\,\Sigma=\mathrm{diag}(\sigma_1\ge\sigma_2\ge\cdots\sigma_n\ge 0)$.
 <li class="lino">(If any $\sigma_j=0$ then $A$ is rank-deficient, stop and warn the user or take some other action.)
@@ -581,10 +583,10 @@ $AV = U\Sigma,\,\,\,\, U^TU = I,\,\,\, V^TV = I, \,\,\,\Sigma=\mathrm{diag}(\sig
   <li class="lino"> Let $z = t + \frac{b - g(t)}{g'(t)},\qquad$
   <li class="lino"> Let $W = \mathrm{diag}(g'(t)^2/\mathrm{var}(g(t)))$.
   <li class="lino"> If $\min(\mathrm{diag}(W))$ is too small warn the user or see the <a href="#edge">Edge cases</a> section below.
-  <li class="lino"> Let $t_{old} = t$.
-  <li class="lino"> Let $t = U(U^T W U)^{-1}U^T W z.$
-  <li class="lino"> (Solve with a Cholesky factorization of $U^T W U$.)
-  <li> Exit for loop if $||t_{old} - t|| \lt \mathrm{tol}$.
+  <li class="lino"> Let $s_{old} = s$.
+  <li class="lino"> Let $s = (U^T W U)^{-1}U^T W z$ (Solve with a Cholesky factorization of $U^T W U$.)
+  <li class="lino"> Let $t = U s.$ 
+  <li> Exit for loop if $||s_{old} - s|| \lt \mathrm{tol}$.
 </ol>
 <li class="lino"> Let $x = V\Sigma^{-1}U^T t$.
 </ol>
