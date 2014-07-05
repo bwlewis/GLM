@@ -579,7 +579,7 @@ response vector $b\in\mathbb{R}^m$,
 inverse link function $g$ and its derivative $g'$,
 the variance $\mathrm{var}$ as a function of the mean associated with the
 distribution function of $e$,
-termination tolerance $\mathrm{tol}$, maximum number of iterations itmax.
+termination tolerance $\mathrm{tol}$, maximum number of iterations $\mathrm{itmax}$.
 <p>
 <ol style="list-style:none">
 <li class="lino"> Let $r=b$ (or possibly some other initial guess).
@@ -711,7 +711,8 @@ illustrative example:
 [1]  2.5   NA -1.5 </font>
 </pre>
 
-Note that all the solutions found in the previous example are perfectly
+Note that when the <tt>NA</tt> values are replaced by zero
+all the solutions found in the previous example are perfectly
 reasonable least squares solutions&mdash;it's just that the problem itself is
 not well-defined.  Indeed, there are an infinite number of least-squares
 solutions to choose from in this example.
@@ -735,16 +736,58 @@ is available in the SVD-based routine outlined later in this section.
 
 <h4>How R handles zero diagonal entries in the weight matrix</h4>
 
-R keeps track of observations (rows in the model matrix) corresponding to zero
-weights by omitting them from the model.
+When the diagonal weight matrix $W$ contains only positive diagonal entries
+then the vector inner product given by
+\[
+v^TWv, \qquad v\in\mathbb{R}^m
+\]
+defines a vector norm. However,
+if the matrix has one or more zero values along its diagonal it only defines a
+semi-norm and could lead to ambiguity in the solution of the weighted least
+squares problem.
+
+<p>
+
+We've seen that at least in the logistic regression case, the diagonal elements
+of the weight matrix $W$ cannot be exactly zero. But they could fall to zero
+for other distribution families.
+
+<p>
+
+R simply omits rows in the model matrix (data obserations) corresponding to
+zero weights. That approach can also be applied to any of the decomposition
+methods discussed so far.
+
+<p>
+
+We've noted in previous sections that near-zero values along the diagonal of
+the weight matrix can lead to so-called stiff problems. Unfortunately R does
+not check for this&mdash;and R uses the Householder QR decomposition with
+column pivoting which is potentially numerically unstable in the presence of stiff
+problems.
+
+<p>
+
+Several alternatives for handling stiff problems are possible: We could check
+for tiny diagonal entries in the weight matrix and error out or warn the user
+(perhaps a warning is a good idea in any case!).  Or, we could use a
+full-pivoting or Givens-based QR decomposition, or an alternative decomposition
+strategy like the SVD that is potentially more numerically stable in the
+presence of stiff problems.
+
 
 <h4>Too few observations</h4>
 
 If the total number of rows in the model matrix falls below its column rank, R
-reasonably terminates the modeling process with an error.
+terminates the modeling process with an error.
 
 <p>
-<h4>SVD Newton R implementation</h4>
+<h4>
+<a name="SVD" class="anchor" href="#SVD"></a>
+SVD Newton R implementation
+</h4>
+
+
 
 
 
