@@ -37,7 +37,7 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
 irls_qrnewton =
 function(A, b, family=binomial, maxit=25, tol=1e-08)
 {
-  t  = 0
+  s = t  = 0
   QR = qr(A)
   Q  = qr.Q(QR)
   R  = qr.R(QR)
@@ -50,12 +50,12 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
     wmin   = min(W)
     if(wmin < sqrt(.Machine$double.eps))
       warning("Tiny weights encountered")
-    told   = t
+    s_old   = s
     C   = chol(crossprod(Q, W*Q))
     s   = forwardsolve(t(C), crossprod(Q,W*z))
     s   = backsolve(C,s)
     t      = Q %*% s
-    if(sqrt(crossprod(t - told)) < tol) break
+    if(sqrt(crossprod(s - s_old)) < tol) break
   }
   x = backsolve(R, crossprod(Q,t))
   list(coefficients=x,iterations=j)
@@ -68,7 +68,7 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
 irls_svdnewton =
 function(A, b, family=binomial, maxit=25, tol=1e-08)
 {
-  t = 0
+  s = t = 0
   S  = svd(A)
   if(min(S$d)/max(S$d)<tol) warn("Near rank-deficient model matrix")
   for(j in 1:maxit)
@@ -80,12 +80,12 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
     wmin   = min(W)
     if(wmin < sqrt(.Machine$double.eps))
       warning("Tiny weights encountered")
-    told   = t
+    s_old   = s
     C   = chol(crossprod(S$u, W*S$u))
     s   = forwardsolve(t(C), crossprod(S$u,W*z))
     s   = backsolve(C,s)
     t      = S$u %*% s
-    if(sqrt(crossprod(t - told)) < tol) break
+    if(sqrt(crossprod(s - s_old)) < tol) break
   }
   x = S$v %*% ((1/S$d) * crossprod(S$u,t))
   list(coefficients=x,iterations=j)
