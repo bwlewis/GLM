@@ -126,7 +126,7 @@ the variance $\sigma^2$ of $\epsilon$ are defined as:
 E(\epsilon) = \mu = \int_{-\infty}^{\infty} \epsilon dF(\epsilon),
 \qquad \sigma^2 = \int_{-\infty}^{\infty}(\epsilon-\mu)^2dF(\epsilon).
 \]
-When $e$ is a vector of random variables, we write $E(e)$ to mean the expected
+When $e$ is a vector of random variables, we write $E(e)$ to indicate the expected
 value of each entry, and similarly we define the expected value of a matrix of
 random variables to be the expected value of each entry.  Define the
 variance-covariance matrix of a vector of random variables $e$ with mean vector
@@ -338,14 +338,15 @@ this is equivalent to the (weighted) least squares problem:
 \min||W^{1/2}(Ax - b)||^2.
 \]
 Note that in the logistic regression case $g'(a) = g(a)(1-g(a))$
-is <i>never</i> zero, but other link functions might
+is <i>never</i> zero&mdash;and so the diagonal enties of $W$ are
+never zero&mdash;but other link functions might
 lead to degenerate cases with indefinite weighting matrices.
 We'll discuss approaches to dealing with some exceptional cases like this
 in the <a href="#edge">Edge cases</a> section below.
 
 <p>
 
-Clearly, some other numerical difficulties can arise.  What if 
+Numerical difficulties can and do arise.  What if 
 $g'(\eta) \approx 0$ at some point? Or similarly, what if
 $\mathrm{var}(g(\eta))\approx 0$
 or $W$ is such that $A^TWA$ becomes extremely ill-conditioned?  A more
@@ -358,14 +359,13 @@ bring their own set of numerical difficulties.
 Bj&ouml;rk[2, (pp. 165&mdash;171)] presents an excellent survey of solution
 approaches for the weighted least squares problem.  Direct solution of the
 normal equations (as illustrated in our simple R implementation of the IRLS
-algorithm above) is potentially numerically unstable and not generally advised.
-The brief survey in Bj&ouml;rk is really fascinating reading. His cited references
-show us that even standard Householder QR decomposition can give poor accuracy
-for stiff problems unless it's modified to include column <i>and</i> row
-pivoting. It turns out that the perhaps
-the simplest numerically stable implementation for
-solving the linear system within the IRLS method is the Givens QR algorithm,
-shown by Anda and Park[1].
+algorithm above) is potentially <b>numerically unstable and not generally
+advised</b>.  The brief survey in Bj&ouml;rk is really fascinating reading. His
+cited references show us that even standard Householder QR decomposition can
+give poor accuracy for stiff problems unless it's modified to include column
+<i>and</i> row pivoting. It turns out that the perhaps the simplest numerically
+stable implementation for solving the linear system within the IRLS method is
+the Givens QR algorithm, shown by Anda and Park[1].
  
 <p>
 
@@ -515,13 +515,6 @@ possible numerical problems by checking the size of the smallest diagonal
 element of the weight matrix in each step.
 
 <p>
-What if the final system $Ax = b -r$ becomes inconsistent due to roundoff or
-other errors? That is certainly one potential numerical issue with the
-method. See O'Leary[9] for a brief discussion of
-this. In practice the method is numerically robust even if this occurs, although
-the residual norm $||Ax - b+r||$ is a good diagnostic value for the method.
-
-<p>
 Let's at least verify the plausibility of this method by repeating an earlier
 example from Doug Bates[3]:
 <pre>
@@ -547,7 +540,7 @@ livch2       0.854904050  0.854904050
 livch3+      0.806025052  0.806025052
 </font>
 </pre>
-No surprises here for this modest-sized and well-conditioned data set. The
+No surprises here for this modest-sized and well conditioned data set. The
 IRLS/QR Newton method produces coefficients that match those of R's native GLM
 method to displayed accuracy.
 
@@ -577,7 +570,7 @@ termination tolerance $\mathrm{tol}$, maximum number of iterations $\mathrm{itma
 <li class="lino"> Let $s=0\cdot x$.
 <li class="lino"> Compute the SVD
 $AV = U\Sigma,\,\,\,\, U^TU = I,\,\,\, V^TV = I, \,\,\,\Sigma=\mathrm{diag}(\sigma_1\ge\sigma_2\ge\cdots\sigma_n\ge 0)$.
-<li class="lino">(If any $\sigma_j=0$ then $A$ is rank-deficient, stop and warn the user or take some other action.)
+<li class="lino">(If any $\sigma_j=0$ then $A$ is rank-deficient, stop and warn the user or take other action&mdash;see the <a href="edge">Edge cases</a> section below.)
 <li> For $j=1,2,\ldots,\mathrm{itmax}$, do:
 <ol style="list-style:none;">
   <li class="lino"> Let $z = t + \frac{b - g(t)}{g'(t)},\qquad$
@@ -640,8 +633,8 @@ out and equipped with useful examples and superb literature references.
 R's core <tt>glm.fit</tt> function handles rank-deficient model matrices by
 selecting a subset of columns that are linearly independent.  Model
 coefficients corresponding to model matrix columns that have been omitted from
-the model are marked missing (<tt>NA</tt>).  <b>That's a good convention because
-it clearly alerts users to rank-deficiency in their model.</b>
+the model are marked missing (<tt>NA</tt>).  That's a good convention because
+it clearly alerts users to rank-deficiency in their model.
 
 <p>
 
@@ -661,10 +654,10 @@ to the <tt>glm.fit</tt> function (with a default value of
 <p>
 
 A consequence the sequential nature of R's column subset selection strategy is
-that model results <i>depend on the ordering of model matrix columns</i>, as
-well as pivoting choices.  In general, up to pivoting, model matrix columns to
-the left are preferred for inclusion. Let's investigate with a contrived but
-illustrative example:
+that model results <i>depend on the ordering of model matrix columns</i>, in
+addition to possible pivoting choices.  In general, up to pivoting, model
+matrix columns to the left are preferred for inclusion. Let's investigate with
+a contrived but illustrative example:
 
 <pre>
 # Create a rank-deficient matrix A (rank 2) and a test observation vector b:
@@ -712,9 +705,9 @@ solutions to choose from in this example.
 <p>
 
 R users should be aware however that R makes a choice of particular solution
-based on the ordering of the model matrix columns and pivoting strategy.
-Fortunately, the appearance of <tt>NA</tt> in the solution alerts users that
-the model matrix is rank deficient.
+based on the ordering of the model matrix columns.  Fortunately, the appearance
+of <tt>NA</tt> in the solution alerts users that the model matrix is rank
+deficient.
 
 <p>
 
@@ -752,11 +745,11 @@ methods discussed so far.
 
 <p>
 
-We've noted in previous sections that near-zero values along the diagonal of
-the weight matrix can lead to so-called stiff problems. Unfortunately R does
-not check for this&mdash;and R uses the Householder QR decomposition with
-column pivoting which is potentially numerically unstable in the presence of stiff
-problems.
+We've noted in previous sections that a large ratio of maximum value to minimum
+value along the diagonal of the weight matrix defines so-called stiff problems.
+Unfortunately R does not check for this&mdash;and R uses the Householder QR
+decomposition with column pivoting which is potentially numerically unstable in
+the presence of stiff problems.
 
 <p>
 
@@ -783,12 +776,12 @@ SVD Newton R implementation
 
 We outline an R implementation of our favorite GLM solution method, the <a
 href="#svdnewton">SVD Newton</a> variant of O'Leary's QR Newton method
-discussed above. The implementation is equipped to handle the numerical
-pitfalls discussed above in numerically stable ways with a variety of
-user-controlled options, and it relies on standard BLAS and LAPACK routines.
-The method computes a single (expensive) model matrix decomposition at the
-start, unlike R's default method that computes a (expensive) Householder QR
-decomposition in each IRLS iteration.
+discussed above. The implementation is equipped to handle the pitfalls
+discussed above in numerically stable ways with a variety of user-controlled
+options, and it relies on standard BLAS and LAPACK routines.  The method
+computes a single model matrix decomposition at the start, unlike R's default
+method that computes a Householder QR decomposition of the weighted model
+matrix in <i>each</i> IRLS iteration.
 
 <pre>
 (In process)
