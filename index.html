@@ -779,9 +779,12 @@ href="#svdnewton">SVD Newton</a> variant of O'Leary's QR Newton method
 discussed above. The implementation is equipped to handle the pitfalls
 discussed above in numerically stable ways with a variety of user-controlled
 options, and it relies on standard BLAS and LAPACK routines.  The method
-computes a single model matrix decomposition at the start, unlike R's default
-method that computes a Householder QR decomposition of the weighted model
+decomposes the model matrix at the start; compare to R's <tt>glm.fit</tt>
+function that computes a Householder QR decomposition of the weighted model
 matrix in <i>each</i> IRLS iteration.
+
+<p>
+
 
 <pre>
 (In process)

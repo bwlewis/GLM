@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>GLMs, abridged</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+<div class="wrapper">
+<section>
+<h1>
+<a class="anchor" href="#svdsubsel"></a>
+SVD Subset Selection
+</h1>
+
+Gene Golub and colleagues proposed a simple and, in our experience, little
+known method for selecting a subset of well-conditioned columns from a badly
+conditioned or rank-deficient matrix. The method deserves to be
+better known.
+
+<p>
+
+Picking the most linearly independent columns of a matrix is a hard problem in
+general. SVD subset selection is a simple heuristic method that gives us an
+estimate of the most linearly independent columns of a matrix.  The method
+works best when the matrix is rank-deficient and there is a clear indication of
+numerical rank (a gap in the singular values)&mdash;see the references [1,2]
+for more details. We find the method to work reasonably well with many
+ill-conditioned matrices. It does not do a great job of estimating the most
+linearly independent columns when the matrix is well-conditioned, but in that
+case the subset selection question is perhaps not the right one to ask about
+the data.
+
+<p>
+
+The method's R implementation shown below is short and sweet. It produces a set
+of column indices that estimate the <tt>k</tt> most linearly independent
+columns of the input matrix.
+
+<pre>
+# svdsubsel
+#
+# Input m*p matrix A, m >= p.
+# Number of output columns k<=p.
+# Returns an index subset of columns of A that *estimates* the k most linearly
+# independent columns of A.
+
+svdsubsel <- function(A,k=ncol(A))
+{
+  S <- svd(scale(A,center=FALSE,scale=TRUE), k)
+  n <- which(svd(A)$d < 2*.Machine$double.eps)[1]
+  if(!is.na(n) && k>=n)
+  {
+    k <- n - 1
+    warning("k was reduced to match the rank of A")
+  }
+  Q <- qr( t(S$v[,1:k]) ,LAPACK=TRUE)
+  sort(Q$pivot[1:k],decreasing=FALSE)
+}
+</pre>
+
+SVD subset selection works on a matrix in isolation, independently of other
+aspects of a larger problem that may only employ subset selection in one step,
+for example in <a href="http://bwlewis.github.io/GLM">generalized linear
+models</a> (GLMs).  Superior subset selection can be achieved by taking
+account additional available information (information provided by the response
+vector, for example). In the GLM case in particular, we recommend the elastic
+net method and its successor glmnet[XXX]. 
+
+<p>
+
+SVD subset selection's sole reliance on a data matrix can also be an advantage,
+for example in unsupervised machine learning applications.
+
+
+
+</section>
+
+<section>
+<h2>Example</h2>
+
+Let's illustrate the SVD subset selection method with a simple example.
+<p>
+
+We construct in the sample R program below an ill-conditioned <tt>10 x 10</tt>
+matrix that is numerically singular. We then use SVD subset selection to select
+three columns that we hope are as linearly independent as possible.  We then
+compare that selection with <i>all</i> 120 possible three-column subsets that
+can be formed from the matrix. Our basis for comparison is the condition number
+of the three column submatrix computed by R's <tt>kappa</tt> function.
+<p>
+
+You can change the seed value to see the result for different random-valued
+matrices. Lower the <tt>exponent</tt> value to improve the matrix condition
+number (and reduce the effectiveness of the method).
+
+<pre>
+# Construct a badly conditioned 10x10 matrix
+set.seed(5) # Change the seed for different examples...
+exponent <- 2  # Lower the exponent to improve the matrix condition number...
+
+U <- qr.Q(qr(matrix(rnorm(100),10)))
+V <- qr.Q(qr(matrix(rnorm(100),10)))
+d <- exp(-(1:10)^exponent)
+# In particular, note that the method does not work as well for well-conditioned
+# matrices (by making the exponent < 1 for example).
+A <- U %*% (t(V) * d)
+
+# Use SVD subset selection to pick three columns
+idx <- svdsubsel(A,3)
+
+# *All* possible 3-column subsets of A:
+all <- combn(10,3)
+
+# Which combinations were chosen by SVD subset selection?
+idx <- which(apply(all,2, function(x) all(x==idx)))
+
+# Finally, let's plot the logarithm of the condition numbers of all possible
+# 3-column subsets of A and highlight the ones chosen by SVD subset selection:
+condition_numbers <- apply(all, 2, function(i) log(kappa(A[,i])))
+p <- order(condition_numbers)
+# All the condition numbers:
+plot(condition_numbers[p], xaxt='n',
+     xlab='Subset (sorted by condition number of submatrix)',
+     ylab='log(condition number)',
+     main='Logarithm of condition numbers of all 3-column subsets of A')
+
+# Higlight the SVD subset selection's condition number:
+set <- which(p==idx)
+points(set,condition_numbers[p[set]], col=4,pch=20)
+l <- sprintf("SVD selection of columns %s.",paste(all[,idx],collapse=","))
+legend("topleft",legend=l, fill=4, col=4, bty='n')
+</pre>
+
+The example plots the condition numbers of all possible three-column
+submatrices from lowest to highest, and highlights and lists the selection made
+by the SVD subset selection method. The output typically looks like:
+<center>
+<img src="condition_plot.jpg" alt="Submatrix condition numbers" width="800" height="600"/>
+</center>
+Which in this example shows that the method selected the best-conditioned three column
+submatrix.
+
+
+</section>
+
+<section>
+<h2>References</h2>
+<ol>
+<li> Golub, G. Klema, V., Stewart, GW., Rank degeneracy and least squares problems, Technical Report TR-456, Department of Computer Science, University of Maryland, 1976.
+<li> Golub, G. and Van Load, C., Matrix Computations, 3ed., Johns Hopkins University Press, 1996, pp. 590--595.
+</ol>
+</section>
