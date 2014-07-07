@@ -643,7 +643,7 @@ internal <tt>dqrdc2</tt> Fortran subroutine.  The strategy applies a
 Householder QR method with column pivoting to the weighted model matrix $WA$ in
 each step of the IRLS iteration.  The strategy proceeds columnwise and
 checks if the norm of the subdiagonal of a QR-transformed column falls
-below a tolerance factor times norm of the subdiagonal of the corresponding
+below a tolerance factor times the norm of the subdiagonal of the corresponding
 original model matrix column. If the transformed sub-column norm is too small
 then the column is pivoted to the right-most edge of the matrix and omitted
 from the model.  The tolerance is <tt>min(1e-7,
@@ -705,7 +705,7 @@ solutions to choose from in this example.
 <p>
 
 R users should be aware however that R makes a choice of particular solution
-based on the ordering of the model matrix columns.  Fortunately, the appearance
+based on the ordering of the model matrix columns.  The appearance
 of <tt>NA</tt> in the solution alerts users that the model matrix is rank
 deficient.
 
@@ -1173,6 +1173,19 @@ Agreement with R again, at least to displayed accuracy for our test problem.
 </secion>
 </div>
 
+
+<section>
+<h2>Copyright</h2>
+Copyright (C)  2014 Michael Kane and Bryan W. Lewis
+<p>
+
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.3
+    or any later version published by the Free Software Foundation;
+    with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+    A copy of the license is included in the Github project files.
+
+</section>
 <script src="javascripts/scale.fix.js"></script>
 <script type="text/x-mathjax-config">
 MathJax.Hub.Config({
