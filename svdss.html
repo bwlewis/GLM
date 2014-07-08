@@ -1,9 +1,9 @@
-<!doctype html>
+<!doctype html1
 <html>
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>GLMs, abridged</title>
+    <title>SVD Subset Selection</title>
 
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
@@ -31,7 +31,7 @@ Picking the most linearly independent columns of a matrix is a hard problem in
 general. SVD subset selection is a simple heuristic method that gives us an
 estimate of the most linearly independent columns of a matrix.  The method
 works best when the matrix is rank-deficient and there is a clear indication of
-numerical rank (a gap in the singular values)&mdash;see the references [1,2]
+numerical rank (a gap in the singular values)&mdash;see the references [3,4]
 for more details. We find the method to work reasonably well with many
 ill-conditioned matrices. It does not do a great job of estimating the most
 linearly independent columns when the matrix is well-conditioned, but in that
@@ -71,8 +71,8 @@ aspects of a larger problem that may only employ subset selection in one step,
 for example in <a href="http://bwlewis.github.io/GLM">generalized linear
 models</a> (GLMs).  Superior subset selection can be achieved by taking
 account additional available information (information provided by the response
-vector, for example). In the GLM case in particular, we recommend the elastic
-net method and its successor glmnet[XXX]. 
+vector, for example). In particular for the GLM case we recommend the glmnet[2]
+implementation of the elastic net method.
 
 <p>
 
@@ -145,16 +145,30 @@ by the SVD subset selection method. The output typically looks like:
 <center>
 <img src="condition_plot.jpg" alt="Submatrix condition numbers" width="800" height="600"/>
 </center>
-Which in this example shows that the method selected the best-conditioned three column
-submatrix.
+The method selected the best conditioned three column
+submatrix in this example. It doesn't always pick the best answer, but generally works
+very well for rank-deficient and very ill-conditioned matrices.
 
+<h2>Isn't the SVD computationally expensive for big problems?</h2>
+
+Yes, that is indeed the case. But let's say that you're interested in a small
+well-conditioned subset of columns from a huge ill-conditioned matrix. No
+worries. In that case, we can use Baglama and Reichel's IRLBA method (and
+associated packages available for R, Python and Matlab) [1,5,6,7] to efficiently
+compute a truncated SVD.
 
 </section>
+
 
 <section>
 <h2>References</h2>
 <ol>
+<li> J. Baglama and L. Reichel, Augmented Implicitly Restarted Lanczos Bidiagonalization Methods, SIAM J. Sci. Comput. 2005.
+<li> Jerome H. Friedman, Trevor Hastie, Rob Tibshirani, Regularization Paths for Generalized Linear Models via Coordinate Descent, JSS, Vol. 33, Issue 1, Feb 2010.
 <li> Golub, G. Klema, V., Stewart, GW., Rank degeneracy and least squares problems, Technical Report TR-456, Department of Computer Science, University of Maryland, 1976.
-<li> Golub, G. and Van Load, C., Matrix Computations, 3ed., Johns Hopkins University Press, 1996, pp. 590--595.
+<li> Golub, G. and Van Loan, C., Matrix Computations, 3ed., Johns Hopkins University Press, 1996, pp. 590--595.
+<li> Matlab IRLBA package <a href="http://www.math.uri.edu/~jbaglama/software/irlba.m">http://www.math.uri.edu/~jbaglama/software/irlba.m</a>.
+<li> Python IRLBA package <a href="https://github.com/bwlewis/irlbpy">https://github.com/bwlewis/irlbpy</a>.
+<li> R IRLBA package <a href="http://cran.r-project.org/web/packages/irlba/index.html">http://cran.r-project.org/web/packages/irlba/index.html</a>.
 </ol>
 </section>
