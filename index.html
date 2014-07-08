@@ -719,7 +719,7 @@ requiring that the least squares solution be of minimal norm. That alternative
 is available in the SVD-based routine outlined later in this section.
 
 
-<h4>How R handles zero diagonal entries in the weight matrix</h4>
+<h4>How R handles zero and infinite diagonal entries in the weight matrix</h4>
 
 When the diagonal weight matrix $W$ contains only positive diagonal entries
 then the vector inner product given by
@@ -729,19 +729,21 @@ v^TWv, \qquad v\in\mathbb{R}^m
 defines a vector norm. However,
 if the matrix has one or more zero values along its diagonal it only defines a
 semi-norm and could lead to ambiguity in the solution of the weighted least
-squares problem.
+squares problem. We encounter similarly bad numerical problems when the matrix
+has one or more infinite values along its diagonal (arising from zero-variance
+variables for example).
 
 <p>
 
-We've seen that at least in the logistic regression case, the diagonal elements
-of the weight matrix $W$ cannot be exactly zero. But they could fall to zero
-for other distribution families.
+Note that we've seen that at least in the logistic regression case, the
+diagonal elements of the weight matrix $W$ cannot be exactly zero. But they
+could fall to zero for other distribution families.
 
 <p>
 
 R simply omits rows in the model matrix (data obserations) corresponding to
-zero weights. That approach can also be applied to any of the decomposition
-methods discussed so far.
+zero or infinite weights. That approach can also be applied to any of the
+decomposition methods discussed so far.
 
 <p>
 
