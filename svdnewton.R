@@ -38,12 +38,13 @@ function(A, b, family=binomial, maxit=25, tol=1e-08,
   }
   t = rep(0,m)
   s = rep(0,length(select))
+  good = rep(TRUE,m)
   for(j in 1:maxit)
   {
-    g      = family()$linkinv(t)
-    gprime = family()$mu.eta(t)
-    z      = t + (b - g) / gprime
-    W      = as.vector(gprime^2 / family()$variance(g))
+    g      = family()$linkinv(t[good])
+    gprime = family()$mu.eta(t[good])
+    z      = t + (b[good] - g[good]) / gprime
+    W      = as.vector(gprime^2 / family()$variance(g[good]))
 browser()
     good   = W > .Machine$double.eps*2 & abs(W) < Inf
     if(sum(good)<m)
