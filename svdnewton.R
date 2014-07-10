@@ -41,21 +41,21 @@ function(A, b, family=binomial, maxit=25, tol=1e-08,
   good = rep(TRUE,m)
   for(j in 1:maxit)
   {
-    g      = family()$linkinv(t[good])
-    gprime = family()$mu.eta(t[good])
-    z      = t + (b[good] - g[good]) / gprime
-    W      = as.vector(gprime^2 / family()$variance(g[good]))
-browser()
+    g       = family()$linkinv(t[good])
+    gprime  = family()$mu.eta(t[good])
+    z       = rep(0,m)
+    W       = rep(0,m)
+    z[good] = t[good] + (b[good] - g) / gprime
+    W[good] = as.vector(gprime^2 / family()$variance(g))
     good   = W > .Machine$double.eps*2 & abs(W) < Inf
-    if(sum(good)<m)
-    {
-      warning("Tiny weights encountered")
-    }
+XXX Follow R's convetion here for error detection and good selection
+    if(sum(good)<m) warning("Tiny weights encountered")
     s_old   = s
     C   = chol(crossprod(S$u[good,,drop=FALSE], W[good]*S$u[good,,drop=FALSE]))
     s   = forwardsolve(t(C), crossprod(S$u[good,,drop=FALSE],W[good]*z[good]))
     s   = backsolve(C,s)
-    t      = S$u[good,,drop=FALSE] %*% s
+    t   = rep(0,m)
+    t[good] = S$u[good,,drop=FALSE] %*% s
     if(sqrt(crossprod(s - s_old)) < tol) break
   }
   x = rep(NA, n)
