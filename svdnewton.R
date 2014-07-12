@@ -12,13 +12,14 @@ svdsubsel <- function(A,k=ncol(A))
 }
 
 irls_svdnewton =
-function(A, b, family=binomial, maxit=25, tol=1e-08,
+function(A, b, family=binomial, maxit=25, tol=1e-08, weights=rep(1,nrow(A)),
          rank_deficiency=c("select columns","minimum norm","error"))
 {
   rank_deficiency = match.arg(rank_deficiency)
   m = nrow(A)
   n = ncol(A)
   select = 1:n
+  if(any(weights==0)) A[weights,]=0
   S = svd(A)
   tiny_singular_values = S$d/S$d[1] < tol
   k = sum(tiny_singular_values)
@@ -26,7 +27,7 @@ function(A, b, family=binomial, maxit=25, tol=1e-08,
   {
     if(rank_deficiency=="select columns")
     {
-      warning("Near rank-deficient model matrix")
+      warning("Numerically rank-deficient model matrix")
 # NB This is a different selection method than R's default glm.fit uses.
 # See https://bwlewis.github.io/GLM and https://bwlewis/github.io/GLM/svdss.html
       select = svdsubsel(A,n-k)
@@ -38,17 +39,21 @@ function(A, b, family=binomial, maxit=25, tol=1e-08,
   }
   t = rep(0,m)
   s = rep(0,length(select))
-  good = rep(TRUE,m)
+  good = weights > 0
   for(j in 1:maxit)
   {
     g       = family()$linkinv(t[good])
+    varg    = family()$variance(g)
+    if(any(is.na(varg))) stop("NAs in variance of the inverse link function")
+    if(any(varg==0)) stop("Zero value in variance of the inverse link function")
     gprime  = family()$mu.eta(t[good])
+    if(any(is.na(gprime))) stop("NAs in the inverse link function derivative")
     z       = rep(0,m)
-    W       = rep(0,m)
+    W       = rep(1,m)
     z[good] = t[good] + (b[good] - g) / gprime
-    W[good] = as.vector(gprime^2 / family()$variance(g))
-    good   = W > .Machine$double.eps*2 & abs(W) < Inf
-XXX Follow R's convetion here for error detection and good selection
+    W[good] = sqrt(weights[good] * as.vector(gprime^2 / varg))
+
+    good   = W > .Machine$double.eps*2
     if(sum(good)<m) warning("Tiny weights encountered")
     s_old   = s
     C   = chol(crossprod(S$u[good,,drop=FALSE], W[good]*S$u[good,,drop=FALSE]))
