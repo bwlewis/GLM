@@ -19,7 +19,8 @@ function(A, b, family=binomial, maxit=25, tol=1e-08, weights=rep(1,nrow(A)),
   m = nrow(A)
   n = ncol(A)
   select = 1:n
-  if(any(weights==0)) A[weights,]=0
+  zw = weights==0
+  if(any(zw)) A[zw,]=0
   S = svd(A)
   tiny_singular_values = S$d/S$d[1] < tol
   k = sum(tiny_singular_values)
@@ -49,9 +50,9 @@ function(A, b, family=binomial, maxit=25, tol=1e-08, weights=rep(1,nrow(A)),
     gprime  = family()$mu.eta(t[good])
     if(any(is.na(gprime))) stop("NAs in the inverse link function derivative")
     z       = rep(0,m)
-    W       = rep(1,m)
+    W       = rep(0,m)
     z[good] = t[good] + (b[good] - g) / gprime
-    W[good] = sqrt(weights[good] * as.vector(gprime^2 / varg))
+    W[good] = weights[good] * as.vector(gprime^2 / varg)
 
     good   = W > .Machine$double.eps*2
     if(sum(good)<m) warning("Tiny weights encountered")
@@ -65,6 +66,6 @@ function(A, b, family=binomial, maxit=25, tol=1e-08, weights=rep(1,nrow(A)),
   }
   x = rep(NA, n)
   if(rank_deficiency=="minimum norm") S$d[tiny_singular_values] = Inf
-  x[select] = S$v %*% ((1/S$d) * crossprod(S$u,t))
+  x[select] = S$v %*% ((1/S$d) * crossprod(S$u[good,],t[good]))
   list(coefficients=x,iterations=j)
 }
