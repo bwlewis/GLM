@@ -145,7 +145,7 @@ linear model" we mean a linear model of the form:
 Ax = b + e,\qquad V(e)=\sigma^2W^{-1},
 \]
 where $A$ is an $m\times n$ matrix of $\mathrm{rank}(A)=n$,
-$e$ is a vector of random variables with zero mean and covariance matrix
+$e$ is a vector of random variables with covariance matrix
 $\sigma^2 W^{-1}$ and $W$ is a symmetric positive definite matrix.
 See Bj&ouml;rk[2, pp. 160-165]
 for a concise introduction to generalized linear models that we largely follow here.
@@ -634,7 +634,7 @@ R's core <tt>glm.fit</tt> function handles rank-deficient model matrices by
 selecting a subset of columns that are linearly independent.  Model
 coefficients corresponding to model matrix columns that have been omitted from
 the model are marked missing (<tt>NA</tt>).  That's a good convention because
-it clearly alerts users to rank-deficiency in their model.
+it clearly alerts users to rank-deficiency in their models.
 
 <p>
 
