@@ -27,16 +27,16 @@ better known.
 
 <p>
 
-Picking the most linearly independent columns of a matrix is a hard problem in
-general. SVD subset selection is a simple heuristic method that gives us an
-estimate of the most linearly independent columns of a matrix.  The method
-works best when the matrix is rank-deficient and there is a clear indication of
-numerical rank (a gap in the singular values)&mdash;see the references [3,4]
-for more details. We find the method to work reasonably well with many
-ill-conditioned matrices. It does not do a great job of estimating the most
-linearly independent columns when the matrix is well-conditioned, but in that
-case the subset selection question is perhaps not the right one to ask about
-the data.
+Picking a few of the most linearly independent columns of a matrix is a hard
+problem in general. SVD subset selection is a simple heuristic method that
+picks a subset of $k$ columns from a matrix that <i>estimates</i> the
+best-conditioned subset of $k$ columns.  The method works best when the matrix
+is rank-deficient and there is a clear indication of numerical rank (a gap in
+the singular values)&mdash;see the references [3,4] for more details. We find
+the method to work reasonably well with many ill-conditioned matrices. It does
+not do a great job of estimating the most linearly independent columns when the
+matrix is well-conditioned, but in that case the subset selection question is
+perhaps not the right one to ask about the data.
 
 <p>
 
