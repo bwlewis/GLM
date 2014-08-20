@@ -30,13 +30,13 @@ better known.
 Picking a few of the most linearly independent columns of a matrix is a hard
 problem in general. SVD subset selection is a simple heuristic method that
 picks a subset of k columns from a matrix that <i>estimates</i> the
-best-conditioned subset columns of size k.  The method works best when the matrix
-is rank-deficient and there is a clear indication of numerical rank (a gap in
-the singular values)&mdash;see the references [3,4] for more details. We find
-the method to work reasonably well with many ill-conditioned matrices. It does
-not do a great job of estimating the most linearly independent columns when the
-matrix is well-conditioned, but in that case the subset selection question is
-perhaps not the right one to ask about the data.
+best-conditioned subset of columns of size k.  The method works best when the
+matrix is rank-deficient and there is a clear indication of numerical rank (a
+gap in the singular values)&mdash;see the references [3,4] for more details. We
+find the method to work reasonably well with many ill-conditioned matrices. It
+does not do a great job of estimating the most linearly independent columns
+when the matrix is well-conditioned, but in that case the subset selection
+question is perhaps not the right one to ask about the data.
 
 <p>
 
@@ -172,4 +172,17 @@ compute a truncated SVD.
 <li> Python IRLBA package <a href="https://github.com/bwlewis/irlbpy">https://github.com/bwlewis/irlbpy</a> (also installable from pip).
 <li> R IRLBA package <a href="http://cran.r-project.org/web/packages/irlba/index.html">http://cran.r-project.org/web/packages/irlba/index.html</a>.
 </ol>
+</section>
+
+<section>
+<h2>Copyright</h2>
+Copyright (C)  2014 Michael Kane and Bryan W. Lewis
+<p>
+
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.3
+    or any later version published by the Free Software Foundation;
+    with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+    A copy of the license is included in the Github project files.
+
 </section>
