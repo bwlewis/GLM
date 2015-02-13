@@ -749,9 +749,9 @@ decomposition methods discussed so far.
 
 We've noted in previous sections that a large ratio of maximum value to minimum
 value along the diagonal of the weight matrix defines so-called stiff problems.
-When $W$ is a diagonal matrix (covering most applications of GLM), then this is
+When $W$ is a diagonal matrix (covering most applications of GLM) this is
 simply equivalent to ill-conditioning. In general, however, even reasonably
-well-conditioned problems may exhibit stiffness and in such cases even the
+well-conditioned problems may exhibit stiffness and in such cases the
 Householder QR decomposition may be unstable without full pivoting. Several
 alternatives for handling stiff problems are possible: We could check for tiny
 diagonal entries in the weight matrix and error out or warn the user (perhaps a
