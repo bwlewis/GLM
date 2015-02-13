@@ -169,10 +169,10 @@ Constraints are important for many practical problems.  For example:
 <ul>
 <li> The response $b$ may represent binary 0/1 data and we want the predictor $Ax$
 to at least be constrained to the interval $[0,1]$, in which case we might assume,
-for example, a binomial distribution function for $e$.
+for example, binomial distributions for the entries of $e$.
 <li> $b$ might represent counts and we desire the predictor to be nonnegative since
-negative counts might not make any sense. In this case we might assume a
-Poisson distribution function.
+negative counts might not make any sense. In this case we might assume that the
+entries of $e$ follow Poisson distributions.
 </ul>
 A standard approach to solving the constrained problem is to transform it into
 an unconstrained one by way of a <i>link function</i>. A link function is a
