@@ -657,7 +657,7 @@ A consequence of the sequential nature of R's column subset selection strategy i
 that model results <i>depend on the ordering of model matrix columns</i>, in
 addition to possible pivoting choices.  In general, up to pivoting, model
 matrix columns to the left are preferred for inclusion. Let's investigate with
-a contrived but illustrative example:
+an illuminating example:
 
 <pre>
 # Create a rank-deficient matrix A (rank 2) and a test observation vector b:
@@ -749,18 +749,14 @@ decomposition methods discussed so far.
 
 We've noted in previous sections that a large ratio of maximum value to minimum
 value along the diagonal of the weight matrix defines so-called stiff problems.
-Unfortunately R does not check for this&mdash;and R uses the Householder QR
-decomposition with column pivoting which is potentially numerically unstable in
-the presence of stiff problems.
-
-<p>
-
-Several alternatives for handling stiff problems are possible: We could check
-for tiny diagonal entries in the weight matrix and error out or warn the user
-(perhaps a warning is a good idea in any case!).  Or, we could use a
-full-pivoting or Givens-based QR decomposition, or an alternative decomposition
-strategy like the SVD that is potentially more numerically stable in the
-presence of stiff problems.
+For the vast majority of problems when $W$ is a diagonal matrix then this is
+equivalent to an ill-conditioned problem. Surprisingly for general weight
+matrices, even the Householder QR decomposition may be unstable without full
+pivoting. Several alternatives for handling stiff problems are possible: We
+could check for tiny diagonal entries in the weight matrix and error out or
+warn the user (perhaps a warning is a good idea in any case!).  Or, we could
+use Householder QR with full-pivoting or a Givens-based QR decomposition, or an
+alternative decomposition strategy like the SVD shown above.
 
 
 <h4>Too few observations</h4>
