@@ -256,7 +256,7 @@ element-wise to their vector arguments.
   <li class="lino"> Let $\eta = Ax_j$.
   <li class="lino"> Let $z = \eta + \frac{b - g(\eta)}{g'(\eta)},\qquad$
   <li class="lino"> Let $W = \mathrm{diag}(g'(\eta)^2/\mathrm{var}(g(\eta)))$.
-  <li class="lino"> Let $x_{j+1} = x_j + (A^T W A)^{-1} A^T W z$.
+  <li class="lino"> Let $x_{j+1} = (A^T W A)^{-1} A^T W z$.
   <li> Stop if $||x_{j+1} - x_j|| \lt \mathrm{tol}$.
 </ol>
 </ol>
