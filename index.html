@@ -30,10 +30,11 @@ and
 <p>
 Generalized linear models (GLMs) are indispensable tools in the data science
 toolbox. They are applicable to many real-world problems involving continuous,
-yes/no, count and survival data (and more). The models themselves are intuitive and can be
-used for inference and prediction.  A few very high quality free and open
-source software implementations are available (in particular within R[11]), as are
-several very good commercial ones (Revolution Analytics[12], SAS, Stata).
+yes/no, count and survival data (and more). The models themselves are intuitive
+and can be used for inference and prediction.  A few very high quality free and
+open source software implementations are available (in particular within
+R[11]), as are several first-rate commercial ones (Revolution Analytics[12],
+SAS, Stata).
 
 <p>
 Despite the wide applicability of GLMs and the availability of high-quality
@@ -216,7 +217,7 @@ including Broyden's quasi-Newton method as follows:
 #        g is the inverse link function.
 # Output: The model coefficients x.
 
-nnls = function(A,b,g)
+nlls = function(A,b,g)
 {
   f = function(x) crossprod(b - g(A %*% x))[]
   optim(rep(0,ncol(A)), fn=f, method="BFGS")$par
@@ -333,9 +334,10 @@ IRLS solves a generalized linear model in each iteration:
 (A^T W A)^{-1} A^T W z.
 \]
 When $W$ is symmetric positive definite
-this is equivalent to the (weighted) least squares problem:
+this is equivalent to the solution of the
+weighted least squares problem:
 \[
-\min||W^{1/2}(Ax - b)||^2.
+\min_x||W^{1/2}(Ax - b)||^2.
 \]
 Note that in the logistic regression case $g'(a) = g(a)(1-g(a))$
 is <i>never</i> zero&mdash;and so the diagonal enties of $W$ are
@@ -699,8 +701,7 @@ an illuminating example:
 Note that when the <tt>NA</tt> values are replaced by zero
 all the solutions found in the previous example are perfectly
 reasonable least squares solutions&mdash;it's just that the problem itself is
-not well-defined.  Indeed, there are an infinite number of least-squares
-solutions to choose from in this example.
+not well-defined.
 
 <p>
 
@@ -713,8 +714,8 @@ deficient.
 
 In our opinion, when users see a result like this they should step back and
 think about the problem carefully. We recommend a systematic variable selection
-process like the elastic net [12].  Another reasonable alternative approach is
-to add additional constraints to make the problem convex&mdash;for example,
+process like the elastic net [12].  Another reasonable alternative approach
+adds additional constraints that make the problem convex&mdash;for example,
 requiring that the least squares solution be of minimal norm. That alternative
 is available in the SVD-based routine outlined later in this section.
 
