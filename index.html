@@ -74,7 +74,7 @@ These are working notes. We'll continue to tweak and revise them.
 <h2>Linear models</h2>
 <p>
 We begin by defining what we mean when we say "linear model" before moving on
-to GLMs. Our presentation and notation generally follow Bj&ouml;rk[2].
+to GLMs. Our presentation and notation generally follow Bj&ouml;rck[2].
 Let $b\in\mathbb{R}^m, b\ne 0$ be a vector of measurements (called a response
 vector) and let $A\in\mathbb{R}^{m\times n}$, $m\ge n$, $\mathrm{rank}(A)=n$,
 be a matrix formed from data observations (called a model matrix).  Then
@@ -148,7 +148,7 @@ Ax = b + e,\qquad V(e)=\sigma^2W^{-1},
 where $A$ is an $m\times n$ matrix of $\mathrm{rank}(A)=n$,
 $e$ is a vector of random variables with covariance matrix
 $\sigma^2 W^{-1}$ and $W$ is a symmetric positive definite matrix.
-See Bj&ouml;rk[2, pp. 160-165]
+See Bj&ouml;rck[2, pp. 160-165]
 for a concise introduction to generalized linear models that we largely follow here.
 The solution of the generalized linear model can be formulated as
 \[
@@ -358,11 +358,11 @@ bring their own set of numerical difficulties.
 
 <p>
 
-Bj&ouml;rk[2, (pp. 165&mdash;171)] presents an excellent survey of solution
+Bj&ouml;rck[2, (pp. 165&mdash;171)] presents an excellent survey of solution
 approaches for the weighted least squares problem.  Direct solution of the
 normal equations (as illustrated in our simple R implementation of the IRLS
 algorithm above) is potentially <b>numerically unstable and not generally
-advised</b>.  The brief survey in Bj&ouml;rk is really fascinating reading. His
+advised</b>.  The brief survey in Bj&ouml;rck is really fascinating reading. His
 cited references show us that even standard Householder QR decomposition can
 give poor accuracy for stiff problems unless it's modified to include column
 <i>and</i> row pivoting. It turns out that the perhaps the simplest numerically
