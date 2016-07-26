@@ -46,13 +46,21 @@ high-performance implementations.
 
 <p>
 
-This note grew out of our own desire to better understand how to go about
-solving generalized linear models in practice.  We highlight aspects of GLM
+This note grew out of our own desire to better understand the numerics 
+of generalized linear models.  We highlight aspects of GLM
 implementations that we find particularly interesting. We present some
 reference implementations stripped down to illuminate core ideas; often with
-just a few lines of code.  Finally, we discuss details that enable the
-development of effective distributed parallel implementations suitable for
-solution of large-scale problems.
+just a few lines of code.
+
+Our focus on numerics really gives short shrift to the statistical motivation
+behind GLMs--in particular the IRLS method comes out of nowhere below. We're
+working on a new introductory section that very briefly summarizes the
+derivation of that method and ties it in to our main investigation of its
+numerics better. Will hopefully be done this summer, along with finishing
+up details on distributed implementations.
+
+--Bryan and Mike
+
 
 <p>
 
@@ -1269,7 +1277,7 @@ tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
 });
 </script>
 <script type="text/javascript"
-  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 </script>
 
 </body>
