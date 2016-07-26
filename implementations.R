@@ -17,16 +17,16 @@ function(A, b, family=binomial, maxit=25, tol=1e-08)
   x = rep(0,ncol(A))
   for(j in 1:maxit)
   {
-    eta   = A %*% x
+    eta   = drop(A %*% x)
     g     = family()$linkinv(eta)
     gprime = family()$mu.eta(eta)
     z     = eta + (b - g) / gprime
-    W     = as.vector(gprime^2 / family()$variance(g))
+    W     = drop(gprime^2 / family()$variance(g))
     xold  = x
-    x     = solve(crossprod(A,W*A), crossprod(A,W*z), tol=2*.Machine$double.eps)
-    if(sqrt(crossprod(x-xold)) < tol) break
+    x     = solve(crossprod(A, W * A), crossprod(A, W * z), tol=2*.Machine$double.eps)
+    if(sqrt(drop(crossprod(x - xold))) < tol) break
   }
-  list(coefficients=x,iterations=j)
+  list(coefficients=x, iterations=j)
 }
 
 # A method discussed by O'Leary that uses a QR factorization of the model
@@ -203,7 +203,7 @@ function(filename, chunksize, b, family=binomial, maxit=25, tol=1e-08)
     }
     xold  = x
     C     = chol(ATWA, pivot=TRUE)
-    if(attr(C,"rank")<ncol(C)) stop("Rank-deficiency detected.")
+    if(attr(C, "rank") < ncol(C)) stop("Rank-deficiency detected.")
     p     = attr(C, "pivot")
     x     = backsolve(C,forwardsolve(t(C),ATWz[p]))[p]
     if(sqrt(crossprod(x-xold)) < tol) break
