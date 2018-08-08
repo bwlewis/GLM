@@ -47,7 +47,8 @@ function(X, y, family=binomial, maxit=25, tol=1e-10, stol=1e-10,
       if((tail(S_new$d, 1) / S_new$d[1]) <= stol)
       {
         warning("Whoops! SVD subset selection failed, trying dqrdc2 on full matrix")
-        Q = qr(X, LAPACK=FALSE)
+        if(is.list(X)) Q = qr(X$u %*% (X$d * t(X$v)), LAPACK=FALSE)
+        else Q = qr(X, LAPACK=FALSE)
         pivot = Q$pivot
         idx = sort(head(pivot, k))
         omit = tail(Q$pivot, nvars - k)
