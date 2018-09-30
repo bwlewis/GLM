@@ -1,0 +1,771 @@
+\documentclass[10pt]{article} %See documentation for other class options
+\usepackage{tabularx}
+\usepackage{color}
+%\usepackage{fixltx2e,fix-cm}
+%\usepackage{makeidx}
+%\usepackage{multicol}
+\usepackage{mathtools}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{authblk}
+\usepackage{graphicx}
+\usepackage{float}
+\newtheorem{thm}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newcommand{\R}{{\mathbb R}}
+
+
+\begin{document}
+
+\floatstyle{ruled}
+\newfloat{program}{thp}{lop}
+\floatname{program}{Program}
+\newfloat{algorithm}{thp}{lop}
+\floatname{algorithm}{Algorithm}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.2em}
+
+\definecolor{verbgray}{gray}{0.9}
+\definecolor{verbgray2}{gray}{0.975}
+\lstset{backgroundcolor=\color{verbgray},
+  frame=single,
+  framerule=0pt,
+  basicstyle=\ttfamily,
+  keepspaces=true,
+  columns=fullflexible}
+
+
+\section*{Generalized linear models, abridged}
+
+\begin{quote}
+{\it This is the 2nd major revision of this document. This version derives
+algorithmic details of the iteratively re-weighted least squares method
+(IRWLS), and emphasizes advantages of using the singular value decomposition
+(SVD) in its implementation. We added background reference material on the SVD.
+From a suggestion by James Blevins, the notation was revised to bring it closer
+to other references, especially~\cite{MN}.  Although nothing here is very
+deep, some details are complicated by a profusion of variables and functions.
+I was inspired by Lamport's great advice~\cite{lamport} to try to
+carefully spell things out very simply, step by step, referring back to
+previously established quantities often.  --Bryan}
+\end{quote}
+
+\begin{quote}
+Generalized linear models (GLMs) are indispensable tools in the data science
+toolbox. They are applicable to many real-world problems involving continuous,
+yes/no, count and survival data (and more). The models themselves are intuitive
+and can be used for inference and prediction.  A few very high quality free and
+open source software implementations are available (in particular within
+R~\cite{R}, and also ExaStat/Revolution Analytics), as are a few first-rate
+commercial ones like SAS, and Stata.
+
+This note grew out of our own desire to better understand the numerics of
+generalized linear models.  We highlight aspects of GLM implementations that we
+find particularly interesting. We present some reference implementations
+stripped down to illuminate core ideas; often with just a few lines of code.
+Our implementations are in R but are close to pseudocode and easily ported to
+other languages. --Bryan and Mike
+\end{quote}
+
+
+\section*{Linear algebra background material}
+
+Skip ahead to the {\bf Linear models} section if you already know all about the
+singular value decomposition...  The following brief introduction closely
+follows the important reference book by Golub and Van Loan, Matrix Computations
+\cite{gvl}. You should read that book.
+
+\subsection*{Orthonormal vectors and rotations}
+
+Let $V$ be a real-valued $n\times p$ matrix, which we write as
+$V\in\R^{n\times p}$.  It's sometimes useful to enumerate the
+column vectors of a matrix, which we write for instance as $V=[v_1, v_2,
+\ldots, v_p]$.  The column vectors of $V$ are {\it orthonormal} if and only if
+$V^T V = I$, the $p\times p$ identity matrix.  For instance, the identity
+matrix itself is composed of orthonormal column vectors.  When the matrix $V$
+is square, that is when $n=p$, then we simply say that $V$ is an orthonormal
+matrix.
+The columns of orthonormal matrices form coordinate bases of $\R^n$
+whose directions are orthogonal--in other words, a rotation of
+the usual unit basis coordinate system. For example, consider a $2\times 2$
+orthonormal matrix $V$:
+\[
+V = \left(\begin{array}{cc}
+1/{\sqrt{2}} & -1{\sqrt{2}} \\
+1/{\sqrt{2}} & 1/{\sqrt{2}}
+\end{array}\right).
+\]
+Figure \ref{chxx_rotation} illustrates the rotation by plotting
+the column vectors of $V$ along with the usual unit basis vectors.
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.5\textwidth]{rotation.pdf}
+\end{center}
+\caption{Coordinates from matrix $V$ with orthonormal columns (solid lines)
+compared to the standard unit basis vectors (dashed). $V$ is a rotation
+matrix.}
+\label{chxx_rotation}
+\end{figure}
+Multiplying a vector by $V$ rotates the entries of the vector to the
+new coordinate system, and does nothing else. In particular, the Euclidean
+norm of the vector is not changed. This is a useful result so we will state
+it as a Lemma:
+\begin{lemma}\label{invariant}
+Let $V\in\R^{n\times n}$ be an orthonormal matrix. Then
+$\|Vx\|=\|x\|$ for all $x\in\R^n$.
+\end{lemma}
+
+
+\subsection*{The singular value decomposition}
+
+The singular value decomposition, or SVD, plays a central role in the
+analysis--and often implementation--of many computational methods involving
+matrices.  If you only plan to know one matrix decomposition, this is the one
+to know.  Let $X\in\R^{n \times p}$ and let $k=\min\{n, p\}$.  Then
+there exist matrices $U\in\R^{n \times k}$ and $V\in\R^{p\times
+k}$ with orthonormal columns $U^T U = V^T V = I$ such that
+\begin{equation}\label{SVD}
+U^T X V = \Sigma,
+\end{equation}
+where $\Sigma$ is a $k\times k$ diagonal matrix with non-negative entries
+$\sigma_1 \ge \sigma_2 \ge \cdots \ge \sigma_k \ge 0$ along its
+main diagonal. This is sometimes called the ``thin'' SVD.  R users will be
+familiar with this as the {\tt svd(X)} function, which returns a vector of
+$\sigma_i$ values instead of a full diagonal matrix $\Sigma$ but is otherwise
+the same.  The singular value decomposition is not unique, but is almost so--it
+is unique up to the signs of the singular vector elements.
+
+In the case that $n > p$ it's possible to extend the matrix $U$, by adding $n -
+p$ additional orthonormal columns, into a square orthonormal $n\times n$ matrix
+$\bar{U}$. Similarly, when $n < p$ we can extend $V$ to a square orthonormal
+$p\times p$ matrix $\bar{V}$. The extended matrices are especially useful in
+analysis, and available to R users using the function invocation
+{\tt{svd(X,$\phantom{,}$nu=n,$\phantom{,}$nv=p)}}.  The extended version is
+sometimes called the ``full'' SVD or just the SVD in many references and
+$\bar{U}^TX\bar{V}=\bar{\Sigma}$ results in an $n\times p$ rectangular diagonal
+matrix with the same main diagonal entries $\sigma_1 \ge \sigma_2 \ge \cdots \ge
+\sigma_k \ge 0$ as the thin version.
+
+The columns of $\bar{U}$ are called the {\it left singular vectors} of $X$ and the
+columns of $\bar{V}$ are called the {\it right singular vectors}.  The $\sigma_i$ are
+called {\it singular values} of $X$.  The SVD breaks matrix vector
+multiplication into three steps: rotation, scaling, then another rotation.
+Consider an $n\times p$ matrix
+$X$ and its product $y$ with a vector $b\in\R^p$ using the
+full SVD
+$y=Xb = \bar{U}\bar{\Sigma}\bar{V}^Tb$:
+\begin{enumerate}
+\item Let $\hat{b}=\bar{V}^T b\in\R^p$.
+Since $\bar{V}$ is orthonormal, $\hat{b}$ is simply a rotation of the
+vector $b$.
+\item Now let $s = \bar{\Sigma}\hat{b}\in\R^n$,
+which scales each entry of $\hat{b}$ by the corresponding $\sigma_i$.
+\item Finally let $y=\bar{U}s$. This is just another rotation by the
+orthonormal matrix $\bar{U}$.
+\end{enumerate}
+The SVD reveals a lot of information about the structure of the matrix $X$.
+Step 2 tells us how much a vector can be scaled by $X$.  The rotations in steps
+1 and 3 tell us about its range and null space.  The number of nonzero singular
+values of $X$ is equal to the \emph{rank} of $X$--the dimension of the range of
+$X$ (range means the set of all linear combinations of the columns of $X$
+a.k.a.  the span of $X$).  The {\it condition number}
+of $X$, familiar to R users as the \verb+kappa+ function and also written
+$\kappa_2(X)$, is the ratio of largest and smallest singular values.  It
+measures how ill-conditioned the matrix is. Computation involving highly
+ill-conditioned matrices can be very sensitive to perturbations like noise or
+even numerical precision.
+
+Let $U^TXV=\Sigma$ be the ``thin'' SVD of $X$ and let
+$\bar{U}\in\R^{n\times n}$ and $\bar{V}\in\R^{p\times p}$ be
+their extended versions when $n > p$ or $n < p$.  Let $r$ be the index
+corresponding to the smallest non-zero singular value of $X$, for instance
+$\sigma_1 \ge \sigma_2 \ge \cdots \ge \sigma_r > \sigma_{r+1} = 0 = \cdots = \sigma_k$,
+where $k=\min\{n,p\}$. Then $\mbox{rank}(X) = r$ and the singular vectors define the
+following bases:
+\begin{itemize}
+\item The first $r$ columns of $U$ form a basis of the range of $X$.
+\item The first $r$ columns of $V$ form a basis of the range of $X^T$.
+\item If $r<p$, then the $r+1$ through $p^{\mathrm{th}}$ columns of
+$\bar{V}$ form a basis of the null space of $X$.
+\item If $r<n$, then the $r+1$ through $n^{\mathrm{th}}$ columns of
+$\bar{U}$ form a basis of the null space of $X^T$.
+\end{itemize}
+Knowledge of these bases are exceedingly useful for analysis, as well as for
+development and implementation of good algorithms.
+See Golub and Van Loan\cite{gvl} for many more details.
+
+
+Several important {\it matrix norms} can be defined in terms of the SVD.
+Matrix norms provide a way to measure distance between matrices and exhibit
+the usual properties of norms plus a sub-multiplicative property
+$\|X Y\| \le \|X\| \|Y\|$ for conformable matrices $X$ and $Y$.
+
+Let $X\in\R^{n\times p}$, and let $k=\min(n, p)$. Then the squared
+{\it Frobenius norm} of $X$ is
+$\|X\|_F^2 = \sigma_1^2 + \sigma_2^2 + \cdots + \sigma_k^2$.
+The {\it spectral norm} of $X$ is simply its largest singular value,
+$\|X\|_2 = \sigma_1$. Both norms are familiar to R users of the
+{\tt norm} function.
+
+
+
+The SVD gives us a practical way to think about matrix rank.  The smallest
+singular value of a matrix $X$ is the spectral norm distance between $X$ to the
+set of rank-deficient matrices; that is, it's a measure of how close to
+rank-deficient $X$ is.
+
+It might not make sense to think about scaling vectors by values less than the
+floating-point unit roundoff $\mathbf{u}$ ({\tt .Machine\$double.eps} in R). In
+this case, if the smallest singular value of $X$ is near or below $\mathbf{u}$,
+then we might be in trouble--computations involving $X$ beware!  Matrices with
+smallest singular values below $\mathbf{u}$ or some small multiple of
+$\mathbf{u}$  are called {\it numerically rank deficient}.
+
+
+
+\subsection*{Linear models}
+
+Let $X\in\R^{n\times p}$ be a matrix formed from $n$ data observations of $p$
+features (called a model matrix).  Let $y\in\R^n, y\ne 0$ be a vector of $n$
+measurements (called a response vector) and assume that the entries of $y$
+are realizations of a set of $n$ independent but identically-distributed
+(i.i.d.) random variables.  Then the linear system of equations
+\begin{equation}\label{linear}
+Xb = y + e
+\end{equation}
+is what we mean when we say ``linear model,'' where a possible solution
+$b\in\R^p$, when one exists, is a vector of model coefficients, and the
+entries of the residual error term $e\in\R^n$ are also i.i.d. 
+Given a vector $b$ of model
+coefficients, we call the product $Xb$ a {\it predictor} of the response vector
+$y$.  We're leaving important definitions of ``random variable'' and
+``independent and identically distributed'' to the references.
+
+It's easy to see that if $e=0$, the exactly-specified linear model Equation
+\ref{linear} admits three possibilities for $b$:
+\begin{enumerate}\setlength\itemsep{-0.4em}
+\item No solution for $b$ exists.
+\item A unique solution $b$ exists.
+\item An infinite number of solutions $b$ exist.
+\end{enumerate}
+For instance, in the 2-D case of a two by two matrix $X$ the possible solutions
+correspond to 1) parallel lines; 2) lines intersecting at a point; and
+3) co-incident lines.
+The interesting cases 1 and 3 correspond to situations when
+$\mathrm{rank}(X) < p$.
+Dealing with those interesting cases substantially complicate
+solution implementations, even when $e\ne 0$ but is allwoed to consist
+of i.i.d. entries.
+
+Given a model matrix $X$ and response vector $y$, there are many ways we might
+go about solving for a vector of model coefficients $b$. A particularly
+natrural approach is described next.
+
+
+\subsection*{Ordinary least squares}
+
+The ordinary least squares (OLS) solution to Equation \ref{linear} 
+finds a coefficient vector $b$ that
+minimizes the residual error between the response and the predictor
+vectors,
+\[
+\min_b \|X b - y\|^2,
+\]
+where $||\cdot||$ indicates Euclidean norm.  The conditions $p \le n$ and
+$\mathrm{rank}(X)=p$ imply that there exists a unique OLS solution--such cases
+are called full rank least squares problems.  Otherwise, if more that one
+solution exists we can add constraints to form a new problem with a unique
+solution, leading to many possible constrained solution methods.
+For instance, we may constrain the solution to be the one with minimal
+Euclidean norm. Other constrained solutions are possible.
+
+Let's see how the SVD can be used to solve general ordinary least squares
+problems. The following result is adapted from Golub and Van Loan
+\cite[Theorem 5.5.1]{gvl}.
+\begin{thm}
+Let $X$ be a real $n\times p$ matrix, with full SVD
+$\bar{U}^TX\bar{V} = \bar{\Sigma}$ using extended matrices
+$\bar{U} = [u_1, u_2, \ldots, u_n] \in\R^{n\times n}$,
+$\bar{\Sigma}\in\R^{n\times p}$, and
+$\bar{V} = [v_1, v_2, \ldots, v_p]\in\R^{p\times p}$,
+and let $r \le \min\{n, p\}$ be the rank of $X$. Then
+\begin{equation}\label{SVDLS}
+b_{LS} = \sum_{i=1}^r \frac{u_i^T y}{\sigma_i}v_i
+\end{equation}
+minimizes $\|X b - y\|^2$ and has the smallest Euclidean norm of all
+such minimizers.
+\\
+{\bf Proof}. For any vector $b\in\R^p$, 
+\begin{align}
+\|X b - y\|^2 &= \|\bar{U}\bar{\Sigma}\bar{V}^T b - y\|^2 \qquad\,\,\,\,\,\,\, (\mbox{replacing X with its full SVD})\nonumber\\
+&= \|\bar{U}^T(\bar{U}\bar{\Sigma}\bar{V}^T b - y)\|^2 \,\,\,\,\,\, (\mbox{by Lemma \ref{invariant}})\nonumber\\
+&= \|\bar{\Sigma}\bar{V}^T b - \bar{U}^Ty\|^2 \nonumber \\
+&= \sum_{i=1}^p(\sigma_iv_i^T b - u_i^Ty)^2 + \sum_{i=p + 1}^n(u_i^Ty)^2. \label{residual}
+\end{align}
+The columns of $\bar{V}$ for an orthonormal basis of $\R^p$.
+Express the solution $b$ as a linear combination of the column vectors $v_i$,
+$b = \sum_{i=1}^p \gamma_i v_i$ (that is, $\gamma_i = v_i^Tb$). Since $\mathrm{rank}(X)=r$ then
+$\sigma_{r+1} = \sigma_{r+2} = \cdots = \sigma_p = 0$ and the corresponding
+coefficients $\gamma_i$ may take on any value without affecting the
+residual norm.  The specific choice
+$\gamma_{r+1} = \gamma_{r+2} = \cdots b_p = 0$
+minimizes the norm of any possible solution $b$.
+Then the residual norm in Equation \ref{residual} is minimized by setting the remaining coefficients
+$v_i^Tb = \gamma_i = (u_i^T y) v_i/ \sigma_i$ for $i=1, 2, \ldots, r$.
+$\square$
+\end{thm}
+
+The minimum-norm least squares solution is widely used in many science and
+engineering applications, but it's more common in statistics to constrain
+solutions to rank deficient problems in other ways. In particular, we will see
+below how R reformulates rank-deficient problems into full-rank ones by
+selecting a subset of columns using a heuristic procedure based on the model
+matrix column order. Other subset selection approaches include the lasso which
+solves the penalized least-squares problem
+\begin{equation}\label{lasso}
+\min_b\|Xb - y\|^2 + \mu\|b\|_1
+\end{equation}
+for a parameter $\mu>0$ and the 1-norm of the solution vector $b$. The lasso
+is the closest convex estimate of the parameterized
+\emph{best subset selection problem}:
+\[
+\min_b\|Xb - y\|^2 + \mu\|b\|_0,
+\]
+where $\|b\|_0$ means simply the count of nonzero components of $b$.
+(Despite the notation, $\|b\|_0$ is not a vector norm
+since for any scalar $\lambda$ with $|\lambda |$ not equal to zero or one,
+$\|\lambda b\|_0 \ne |\lambda |\|b\|_0$.) Although the best subset selection
+problem might seem to be the most natural way to select subsets of columns of
+the matrix $X$, the problem is nonconvex and hard to solve--indeed it is
+known to be NP hard.  We
+shall see later that there are other approaches to estimating optimal
+column subsets including a
+fast heuristic method by Golub called SVD subset
+selection~\cite[Section 12.2]{gvl}, and a
+newer approach by Lanza, Reichel and others based on Krylov subspace
+methods~\cite{lanza}.
+
+The ordinary least squares solution of linear models has important statistical
+properties shown by Gauss~\cite{gauss} and later rediscovered by
+Markoff~\cite{markoff}. The least squares solution defines a {\it minimum
+variance unbiased estimator}, the technical details of which we leave to the
+references, in particular see~\cite{hastie},\cite{MN}.
+
+
+\section*{Generalized linear models}
+
+Our notes on generalized linear models closely follow the seminal book
+``Generalized Linear Models'' by McCullagh and Nelder~\cite{MN}.  That very
+readable and practical book remains, in our opinion, the best all-around applied
+reference on GLMs and strongly influenced algorithm implementations in the
+R language.
+McCullagh and Nelder describe generalizations of the basic linear model
+in three parts:
+\begin{enumerate}
+\item A \emph{random component} describing the distribution of the
+measured entries of of a response vector $y$ and their vector of
+expected values $\mu = E(y)\in\R^n$.
+\item A \emph{systematic component} $\eta = X\beta$ that is just a basic
+linear model involving a vector $\eta\in\R^n$, model matrix $X\in\R^{n\times p}$ and
+coefficient solution vector $\beta\in\R^p$.
+\item A \emph{link function} between the random and systematic components,
+$\eta = g(\mu)$, applied component-wise to the vector $\mu$.
+\end{enumerate}
+The link function $g$ is assumed to be a real-valued monotonic, differentiable
+(and therefore invertible) function.  These notes assume that the random
+component distribution describing the response belongs to a one- or
+two-parameter \emph{exponential family} of probability distributions described
+below. The exponential family covers many widely used and important cases like
+logistic/binomial, Bernoulli, multinomial, exponential, Poisson, Gaussian, and
+others. Limiting our discussion to models that fit into the exponential family,
+despite a superficial mathematical complexity, greatly simplifies many
+details.
+
+Adding the random component and link function around a basic linear model
+allows generalized linear models to model a wider range of scenarios. In
+particular, the link function lets us model variables $\mu$ that are restricted
+to intervals, for instance the interval $[0,1]$ useful for modeling binary
+values.  And we can use the random component to pair an appropriate
+distribution with such values (say, a binomial distribution in the case of 0/1
+data). The added modeling flexibility comes with a cost--the link function can
+turn finding the solution to GLMs into a nonlinear problem (despite the
+underlying linear model assumption in the systematic component).
+
+
+\subsection*{The exponential family of distributions}
+
+The following sections include a lot of math notation and many functions and
+parameters to keep track of. Although a bit complicated, nothing presented here
+is harder than elementary Calculus. We closely follow McCullagh and Nelder's
+exposition~\cite{MN}, but we expand on it in some places to help illuminate key
+ideas.
+
+The exponential family of distributions can be written as a function
+\begin{equation}\label{expfamily}
+f(y; \theta, \phi) = \exp\left(\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \phi)\right),
+\end{equation}
+for parameters $\theta$ and $\phi$ and fixed functions $a,b,$ and $c$.
+The notation $f(y; \theta, \phi)$ means a function $f(y)$ that
+depends on the given parameters $\theta$ and $\phi$.
+Any probability distribution that can be re-written in this form belongs
+to the exponential family.
+
+For instance, let
+$\theta=\mu$, $\phi=\sigma^2$, $b(\theta)=\theta^2/2$, $a(\phi)=\phi$
+and $c(y, \phi) = -\frac{1}{2}(\frac{y^2}{\sigma^2} + \log(2\pi\sigma^2))$.
+Then substituting those values in yields
+\begin{align*}
+f(y; \theta, \phi) &=
+  \exp\left(\frac{y\mu - \mu^2/2}{\sigma^2} - \frac{1}{2}\left(\frac{y^2}{\sigma^2} + \log(2\pi\sigma^2)\right)\right)\\
+&= \frac{1}{\sqrt{2\pi\sigma^2}}\exp\left(\frac{-(y - \mu)^2}{2\sigma^2}\right),
+\end{align*}
+which is a standard expression of a normal distribution,
+showing that the normal distribution fits in to the exponential
+family.
+
+Similarly, consider the Poisson distribution with single parameter
+$\mu$,
+\[
+\exp(-\mu)\mu^y/{y!}\,\,.
+\]
+Let $\theta=\log\mu$, $a(\phi)=1$, $b(\theta)=\exp\theta$, and
+$c(y, \phi)=-\log{(y!)}$. Then
+\begin{align*}
+f(y; \theta, \phi) &=  \exp\left(\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \phi)\right)\\
+&= \exp\left(\frac{y\log\mu - \exp\theta}{1} - \log y!\right)\\
+&= \frac{\exp(y\log\mu - \exp\theta)}{y!}\\
+&= \frac{\exp(y\log\mu - \exp\log\mu)}{y!}\\
+&= \exp(y\log\mu - \mu)/y!\\
+&= \exp{(-\mu)}\exp{(y\log\mu)}/y!\\
+&= \exp(-\mu)\mu^y/y!\,\,.
+\end{align*}
+Many other distributions are described by the exponential family and can be
+written in the form of Equation \ref{expfamily}, including discrete
+and continuous distributions.
+
+\subsubsection*{The log-likelihood function}
+The function
+\begin{equation}\label{loglik}
+\ell(\theta, \phi; y) = \frac{y\theta - b(\theta)}{a(\phi)} + c(y, \theta)
+\end{equation}
+is the corresponding \emph{log-likelihood} function. In this context the
+function $b(\theta)$ is called the \emph{cumulant function} and $\phi$
+the \emph{dispersion parameter}. The log-likelihood function
+indicates how likely a given observed value $y$ is as a function
+of parameters $\theta$ and $\phi$.  Next we derive a few basic identities that
+will be useful later.
+
+Let $\partial\ell/\partial\theta$ be the derivative of the log-likelihood
+function with respect to $\theta$ (how much the function changes as
+$\theta$ changes), and similarly $\partial^2\ell/\partial\theta^2$
+its 2nd derivative (how much the derivative function changes as
+$\theta$ changes). Then
+\begin{equation}\label{dl}
+\frac{\partial\ell}{\partial\theta} = \frac{y - b'(\theta)}{a(\phi)},
+\end{equation}
+and,
+\begin{equation}\label{d2l}
+\frac{\partial^2\ell}{\partial\theta^2} = \frac{-b''(\theta)}{a(\phi)},
+\end{equation}
+where $b'(\theta)$ means the derivative of the function $b$ taken with
+respect to $\theta$.
+
+Assume that $a(\phi)\ne 0$ and that 
+the expected value $E(\partial\ell/\partial\theta) = 0$
+and also that
+$E(\partial^2\ell/\partial\theta^2) + E(\partial\ell/\partial\theta)^2 = 0$.
+Then
+\begin{equation}\label{bprime}
+0 = E(\partial\ell/\partial\theta)  = \frac{E(y) - b'(\theta)}{a(\phi)}
+\qquad\mbox{which means that}\,\,b'(\theta) = E(y).
+\end{equation}
+Recall above that we sometimes use the alternative notation $\mu=E(y)$
+for the expected value of $y$; so $\mu=E(y)=b'(\theta)$.
+
+Similarly,
+\begin{align}
+0 &= 
+E(\partial^2\ell/\partial\theta^2) + E(\partial\ell/\partial\theta)^2 \nonumber\\
+&=
+\frac{-b''(\theta)}{a(\phi)} +
+E\left(\frac{y - b'(\theta)}{a(\phi)}\right)^2 \nonumber\\
+&= \frac{-b''(\theta)}{a(\phi)} +
+E\left(\frac{y^2 - 2yb'(\theta) + b'(\theta)^2}{a(\phi)^2}\right)\nonumber\\
+&= \frac{-b''(\theta)}{a(\phi)} +
+\frac{E(y^2) - E(y)^2}{a(\phi)^2} \qquad(\mbox{substituting}\,\,b'(\theta)=E(y))\nonumber\\
+&= \frac{-b''(\theta)}{a(\phi)} + \frac{V(y)}{a(\phi)^2}\nonumber\\
+&\mbox{which means that}\,\,a(\phi)b''(\theta) = V(y)\label{b2},
+\end{align}
+where $V(y)$ is the usual definition of the variance function for $y$.
+
+Finally for this section, one more useful identity showing that the
+rate of change of the expected value of $y$ with respect to the parameter $\theta$
+is a multiple of the variance function $V(y)$:
+\begin{align}
+\frac{d}{d\theta}E(y) &= \frac{d}{d\theta}\mu &\mbox{(just notation)}\nonumber\\
+&= \frac{d}{d\theta}b'(\theta) &\mbox{(by Equation \ref{bprime})}\nonumber\\
+&= b''(\theta)\nonumber\\
+&= V(y)/a(\phi)\label{mutheta} &\mbox{(by Equation \ref{b2})}.
+\end{align}
+
+\subsubsection*{Canonical link functions}
+
+An important subset of the exponential family is specified by particular
+choices of link functions called \emph{canonical link functions}.  Recall that
+the link function relates $\eta$ and $\mu$ by $\eta=g(\mu)$ in a generalized
+linear model, and thus $d\eta/d\mu = g'(\mu)$. Choosing a canonical link
+results in a number of simplifications as we will see. Chief among them for our
+purposes, a canonical link connects $d\eta/d\mu$ to the variance function by
+\begin{equation}
+\label{canonical}
+{d\eta}/{d\mu}={1}/{V(\mu)}.\qquad\mbox{(canonical link case)}
+\end{equation}
+
+
+
+\subsection*{GLMs and the exponential family}
+
+The last section introduced the random component of generalized linear models
+and corresponding log-likelihood function for the exponential family of
+distributions.  This section puts that together with the remaining
+generalizations, the systematic component's linear model $\eta = X\beta$ and
+the link function $\eta=g(\mu)$ (where, again, $\mu$ is simply an alternative
+notation for the expected value of the response vector $E(y)$).
+
+One approach for solving generalized linear models is to find the value of the
+coefficient vector $\beta$ that maximizes the log-likelihood function. Solving
+for such a \emph{maximum-likelihood solution} is the main goal of this section.
+In order to find a maximum using Calculus, we will need (at least) an
+expression for the derivative of the log-likelihood function with respect to
+each component of the solution $\beta_j$, $\partial{l}/\partial{\beta_j}$.
+
+Writing the $n \times p$ matrix $X$ showing each column as
+$X = [x_1, x_2, \cdots, x_p]$, then
+$\eta = X\beta = x_1\beta_1 + x_2\beta_2 + \cdots + x_p\beta_p$,
+and 
+\begin{equation}\label{eta}
+\partial\eta/\partial\beta_j = x_j.
+\end{equation}
+
+Then using the chain rule from Calculus, the derivative of the log-likelihood
+function with respect to each component of the solution $\beta_j$ is
+\begin{align}
+\frac{\partial\ell}{\partial\beta_j}
+&= \frac{\partial\ell}{\partial\theta}\frac{d\theta}{d\mu}\frac{d\mu}{d\eta}\frac{\partial\eta}{\partial\beta_j} \nonumber\\
+&= \frac{\partial\ell}{\partial\theta}\frac{1}{V(\mu)}\frac{d\mu}{d\eta}\frac{\partial\eta}{\partial\beta_j} 
+    &\mbox{(by Equation \ref{mutheta})} \nonumber\\
+&= \frac{\partial\ell}{\partial\theta}\frac{1}{V(\mu)}\frac{d\mu}{d\eta}x_j
+    &\mbox{(by Equation \ref{eta})} \nonumber\\
+&= \frac{y- b'(\theta)}{a(\phi)}\frac{1}{V(\mu)}\frac{d\mu}{d\eta}x_j
+    &\mbox{(by Equation \ref{dl})} \nonumber\\
+&= w\frac{y-\mu}{a(\phi)}\frac{d\eta}{d\mu}x_j,
+    &\mbox{(by Equations \ref{bprime} and \ref{w})} \label{dldb}
+\end{align}
+where $w$ is a vector with $n$ elements defined as a multiple of the inverse variance function
+(where division is carried out component-wise):
+\begin{equation}\label{w}
+w = \left(\frac{d\mu}{d\eta}\right)^2 \bigg/ V(\mu).
+\end{equation}
+We remark that when $g$ is a canonical link function we get a simplification
+for $w$ using~\ref{canonical}. In the canonical link case,
+\begin{align}
+w &= \left(\frac{d\mu}{d\eta}\right)^2 \bigg/ V(\mu) \nonumber \\
+&= V^2(\mu) / V(\mu) \nonumber \\
+&= V(\mu)\qquad\mbox{(canonical link case)}.  \label{W_canonical}
+\end{align}
+Assume that the dispersion function $a(\phi)$ is constant with respect to the
+solution $\beta$. Then the maximum of the log-likelihood function $\ell$ with
+respect to each solution component $\beta_j$ for $j=1, 2, \ldots, p$ occurs when
+\begin{equation}\label{max_loglik}
+\sum_{i=1}^n w_i(y-\mu)_i\frac{d}{d\mu}\eta_ix_{ij} = 0.
+\end{equation}
+Since $\eta=g(\mu)$, the term $\frac{d}{d\mu}\eta$ is
+simply $g'$, the derivative of the link function.
+Assemble entries of $w$ and $g'$ along the diagonal of an
+$n\times n$ diagonal matrix $W$:
+\begin{equation}\label{W}
+W_{ij} = \bigg\{\begin{array}{cr}
+w_i / g'(\mu)_i & \mbox{if $i=j$}, \\
+0 & \mbox{otherwise}.
+\end{array}
+\end{equation}
+Then a compact formula for the gradient of $\ell$ with respect to $\beta$ is
+\begin{equation}\label{gradient}
+\nabla_\beta\ell = XW(y - \mu).
+\end{equation}
+
+At this point, we have enough information to formulate a first-order solution
+method to finding the maximum likelihood GLM solution.  Possible solution
+methods include gradient descent, Gauss-Newton, conjugate gradient, or
+a quasi-Newton approach. The following example implementation uses R's
+\verb+optim+ function to make a simple GLM solver using the BFGS quasi-Newton
+algorithm.
+
+XXX EXAMPLE XXX
+
+
+
+\subsection*{GLMs solved using Newton's method}
+
+We can do better than the quasi-Newton solution in the last section.  Because
+we restricted our problems to the exponential family, we can formulate an
+analytic representation of the second derivatives of the log-likelihood
+function to form a Hessian matrix. That knowledge enables us to employ solution
+methods using second-order (quadratic) approximations like Newton's
+method--such methods have more favorable convergence properties (faster, more
+stable) than first order solution methods.
+
+We need to differentiate the expression for the derivative of $\ell$ in
+Equation~\ref{dldb} with respect to other elements
+of $\beta_k$ to compute the entries of the 2nd derivative Hessian matrix,
+and again we assume that the dispersion term $a(\phi)$ is constant
+with respect to the solution $\beta$. Then the $jk$-entry of the
+Hessian matrix is:
+\begin{align}
+H_{jk} &= \frac{\delta^2\ell}{\delta\beta_k\delta\beta_j}
+ = \frac{\delta}{\beta_k}\frac{\delta\ell}{\delta\beta_j} \nonumber\\
+&=
+\frac{\delta}{\delta\beta_k}
+\sum_i\left(
+w_i(y-\mu)_i\frac{d\eta_i}{d\mu}x_{ij} \right)\nonumber \\
+&= \sum_i\left(
+(y-\mu)_i
+\frac{\delta}{\delta\beta_k}
+w\frac{d\eta_i}{d\mu}x_{ij}
++
+w_i\frac{d\eta_i}{d\mu}x_{ij}\frac{\delta}{\delta\beta_k}(y-\mu)_i \label{hsum}
+\right)
+\end{align}
+where the last equality uses the product rule from Calculus.
+At this point, we have an (unwieldy) expression for the Hessian and
+we can plug that together with the gradient function from Equation~\ref{gradient}
+into Newton's method to get a maximum likelihood GLM solver.
+However, we will consider an important special case next that is much simpler.
+
+\subsubsection*{Canonical link case}
+In the case of a canonical link, the expression $w_i\frac{d\eta_i}{d\mu}$ in the
+first term of the sum in Equation~\ref{hsum}
+is constant because in such cases
+$d\eta/d\mu=1/V(\mu)$ and
+$w=V(\mu)$ 
+by Equations~\ref{canonical}i and~\ref{W_canonical}. Thus, its derivative
+\[
+\frac{\delta}{\delta\beta_k} w_i\frac{d\eta_i}{d\mu} = 0,
+\]
+that is, the first term of the Hessian in Equation~\ref{hsum}
+drops out when $g$ is a canonical link function.
+Meanwhile, consider the second term
+\begin{align*}
+\sum_i\left(
+w_i\frac{d\eta_i}{d\mu}x_{ij}\frac{\delta}{\delta\beta_k}(y-\mu)_i
+\right)  &=
+\sum_i\left(
+w_i\frac{d\eta_i}{d\mu}x_{ij}\frac{\delta\mu}{\delta\beta_k} \right) &\mbox{($y$ is constant wrt $\beta$)}  \\
+&= 
+\sum_i\left(
+w_ix_{ij}\frac{\delta\eta_i}{\delta\beta_k} \right)&\mbox{(chain rule)}\\
+&= 
+\sum_i\left(
+w_ix_{ij}x_{ik} \right), &\mbox{(by Equation \ref{eta})}
+\end{align*}
+finally arriving (with a substantial subscript-induced headache) at a compact
+expression for the Hessian using the definition of $W$ from Equation~\ref{W}:
+\begin{equation}\label{Hessian}
+H = X^T W X.
+\end{equation}
+
+With an expression for the gradient from Equation~\ref{gradient} and Hessian
+from Equation~\ref{Hessian} of the log-likelihood function, we have all we need
+to implement a second order solution method. The next example uses R's
+\verb+nlm+ function to find the maximum likelihood GLM solution using Newton's
+method.
+
+XXX EXAMPLE XXX
+
+Remember that this derivation assumed that $g$ is a canonical link function. In
+the general case we need to resort to the definition of the Hession in
+Equation~\ref{hsum} for a Newton's method-based solution.
+
+
+
+\subsection*{Iteratively re-weighted least squares}
+
+
+
+
+The numerical solution of model problems of this form was carefully analyzed by
+Paige\cite{paige}.
+...entries of $W$ are non-zero, the generalized linear model
+\ref{glm} results in a weighted nonlinear least squares problem
+typically solved by the iteratively reweighted least square method
+shown in Algorithm \ref{irls} and defined carefully by Bj\"ork\cite{bjork}...
+
+\subsection*{Numerical implementation issues}
+
+cover edge cases here including zero-variance observations (constant rows in $X$)
+and singular/ill-conditioned $X$.
+
+Introduce R's rank revealing QR irwls approach.
+
+SVD-irwls based on algorithm by O'Leary
+
+comparison/examples between R's RRQR-irwls and SVD-irwls
+
+\subsubsection*{Round off error in QR- and SVD-based methods}
+
+
+
+
+
+
+
+
+
+
+
+\section*{Copyright}
+Copyright \copyright  2014 Michael Kane and Bryan W. Lewis
+
+\begin{quote}
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.3
+    or any later version published by the Free Software Foundation;
+    with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+    A copy of the license is included in the Github project files.
+\end{quote}
+
+
+
+\begin{thebibliography}{99}
+\bibitem{anda} Anda, A. and Park, H., Self-scaling fast rotations for stiff least squares problems, Lin. Alg. Appl., 234, 1996, pp. 137-162.
+\bibitem{bjork} Bj\"orck, \AA.,  Numerical Methods for Least Squares Problems, SIAM, Philadelphia, 1996.
+\bibitem{bates} Bates, D., \url{http://www.stat.wisc.edu/courses/st849-bates/lectures/GLMH.pdf">http://www.stat.wisc.edu/courses/st849-bates/lectures/GLMH.pdf}.
+\bibitem{dekker}
+Dekker, Theodorus Jozef. ``A floating-point technique for extending the available precision.'' Numerische Mathematik 18.3 (1971): 224-242.
+\bibitem{friedman} Friedman, Jerome, Trevor Hastie, and Rob Tibshirani. "Regularization paths for generalized linear models via coordinate descent." Journal of statistical software 33.1 (2010): 1.
+\bibitem{glmnet} Friedman, Hastie, Tibshirani, Simon, Narasimhan, Qian, \url{https://cran.r-project.org/package=glmnet}.
+\bibitem{gauss} Gauss, C. F., Theoria combinationis observationum erroribus minimis obnoxiae, Pars prior, 1863 (1st written 1821).
+\bibitem{hastie} Hastie, T. J. and Pregibon, D., Generalized linear models, Chapter 6 of Statistical Models in S, eds J. M. Chambers and T.  J. Hastie, Wadsworth \& Brooks/Cole, 1992.
+\bibitem{fmm} Forsythe, George Elmer, Cleve B. Moler, and Michael A. Malcolm. ``Computer methods for mathematical computations.'' (1977).
+\bibitem{gvl} Golub, Gene H., and Charles F. Van Loan. Matrix computations. Vol. 3. JHU Press, 2012.
+\bibitem{higham96} Higham, Nicholas J. Accuracy and stability of numerical algorithms. Vol. 80. Siam, 2002.
+\bibitem{horn-johnson} Horn, Roger A., and Charles R. Johnson. Matrix analysis. Cambridge university press, 1990.
+\bibitem{jordan} Jordan, Michael, \url{https://people.eecs.berkeley.edu/~jordan/courses/260-spring10/other-readings/chapter8.pdf} (online notes).
+\bibitem{lamport} Lamport, Leslie. How to write a proof. The American mathematical monthly 102.7 (1995): 600-608.
+\bibitem{lanza}Lanza, Alessandro, et al. A Generalized Krylov Subspace Method for $\ell_p-\ell_q$ Minimization. SIAM Journal on Scientific Computing 37.5 (2015): S30-S50.
+\bibitem{lumley} Lumley, T, \url{http://cran.r-project.org/web/packages/biglm">http://cran.r-project.org/web/packages/biglm}.
+\bibitem{markoff} Markoff, A., Wahrscheinlichheitsrechnug,  Leipzig, 1912.
+\bibitem{MN} McCullagh P. and Nelder, J. A., Generalized Linear Models, Chapman and Hall, London 1989.
+\bibitem{oleary} O'Leary, D., Robust regression computation using iteratively reweighted least squares, Siam J. Mat. Anal. Appl., Vol. 11 No. 3, 1990, pp. 466-480.
+\bibitem{paige} Paige, C. C., Fast numerically stable computations for generalized least squares problems, Siam J. Num. Anal., 16, 1979, pp. 165-171.
+\bibitem{R} The R project \url{http://www.r-project.org">http://www.r-project.org}.
+\bibitem{trefbau} Trefethen, Lloyd N., and David Bau III. Numerical linear algebra. Vol. 50. Siam, 1997.
+\bibitem{zhou} Zhou, H. and Hastie, T., Regularization and Variable Selection via the Elastic Net, J. Royal Statistical Society, B, 2005, pp. 301-320.
+\end{thebibliography}
+
+
+\end{document}

@@ -40,7 +40,7 @@ function(X, y, family=binomial, maxit=25, tol=1e-10, stol=1e-10,
       pivot = Q$pivot
       idx = sort(head(pivot, k))
       omit = tail(Q$pivot, nvars - k)
-# XXX we should instead use a slightly cheaper downdating svd scheme here:
+# XXX we can maybe instead use a slightly cheaper downdating svd scheme here:
       S_new = svd(X[, -omit])
 #     double-check that this worked (it may not have), if not resort to
 #     something else... XXX can this be improved?
