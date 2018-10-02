@@ -444,8 +444,7 @@ f(y; \theta, \phi) &=  \exp\left(\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \phi
 &= \exp(-\mu)\mu^y/y!\,\,.
 \end{align*}
 Many other distributions are described by the exponential family and can be
-written in the form of Equation \ref{expfamily}, including discrete
-and continuous distributions.
+written in the form of Equation \ref{expfamily}.
 
 \subsubsection*{The log-likelihood function}
 The function
@@ -512,19 +511,6 @@ is a multiple of the variance function $V(y)$:
 &= V(y)/a(\phi)\label{mutheta} &\mbox{(by Equation \ref{b2})}.
 \end{align}
 
-\subsubsection*{Canonical link functions}
-
-An important subset of the exponential family is specified by particular
-choices of link functions called \emph{canonical link functions}.  Recall that
-the link function relates $\eta$ and $\mu$ by $\eta=g(\mu)$ in a generalized
-linear model, and thus $d\eta/d\mu = g'(\mu)$. Choosing a canonical link
-results in a number of simplifications as we will see. Chief among them for our
-purposes, a canonical link connects $d\eta/d\mu$ to the variance function by
-\begin{equation}
-\label{canonical}
-{d\eta}/{d\mu}={1}/{V(\mu)}.\qquad\mbox{(canonical link case)}
-\end{equation}
-
 
 
 \subsection*{GLMs and the exponential family}
@@ -570,8 +556,19 @@ where $w$ is a vector with $n$ elements defined as a multiple of the inverse var
 \begin{equation}\label{w}
 w = \left(\frac{d\mu}{d\eta}\right)^2 \bigg/ V(\mu).
 \end{equation}
-We remark that when $g$ is a canonical link function we get a simplification
-for $w$ using~\ref{canonical}. In the canonical link case,
+
+\subsubsection*{Canonical link functions}
+Recall that
+the link function relates $\eta$ and $\mu$ by $\eta=g(\mu)$,
+and thus $d\eta/d\mu = g'(\mu)$. Choosing a special \emph{canonical link function}
+results in a number of simplifications. Chief among them for our
+purposes, a canonical link connects $d\eta/d\mu$ to the variance function by
+\begin{equation}
+\label{canonical}
+{d\eta}/{d\mu}={1}/{V(\mu)}.\qquad\mbox{(canonical link case)}
+\end{equation}
+When $g$ is a canonical link function we get a simplification
+for $w$ using~\ref{canonical}:
 \begin{align}
 w &= \left(\frac{d\mu}{d\eta}\right)^2 \bigg/ V(\mu) \nonumber \\
 &= V^2(\mu) / V(\mu) \nonumber \\
@@ -585,6 +582,10 @@ respect to each solution component $\beta_j$ for $j=1, 2, \ldots, p$ occurs when
 \end{equation}
 Since $\eta=g(\mu)$, the term $\frac{d}{d\mu}\eta$ is
 simply $g'$, the derivative of the link function.
+
+
+\subsection*{Maximum likelihood solutions based on first-order approximations}
+
 Assemble entries of $w$ and $g'$ along the diagonal of an
 $n\times n$ diagonal matrix $W$:
 \begin{equation}\label{W}
@@ -595,21 +596,21 @@ w_i / g'(\mu)_i & \mbox{if $i=j$}, \\
 \end{equation}
 Then a compact formula for the gradient of $\ell$ with respect to $\beta$ is
 \begin{equation}\label{gradient}
-\nabla_\beta\ell = XW(y - \mu).
+\nabla_\beta\ell = X^TW(y - \mu).
 \end{equation}
 
-At this point, we have enough information to formulate a first-order solution
-method to finding the maximum likelihood GLM solution.  Possible solution
-methods include gradient descent, Gauss-Newton, conjugate gradient, or
-a quasi-Newton approach. The following example implementation uses R's
-\verb+optim+ function to make a simple GLM solver using the BFGS quasi-Newton
-algorithm.
+At this point, we have enough information from Equations~\ref{loglik}
+and~\ref{gradient} to formulate a first-order solution method to finding the
+maximum likelihood GLM solution.  Possible solution methods include gradient
+descent, Gauss-Newton, conjugate gradient, or a quasi-Newton approach.
+The following example cooks up a very basic GLM solver using gradient
+descent.
 
 XXX EXAMPLE XXX
 
 
 
-\subsection*{GLMs solved using Newton's method}
+\subsection*{Maximum likelihood solution by Newton's method}
 
 We can do better than the quasi-Newton solution in the last section.  Because
 we restricted our problems to the exponential family, we can formulate an
@@ -647,7 +648,8 @@ into Newton's method to get a maximum likelihood GLM solver.
 However, we will consider an important special case next that is much simpler.
 
 \subsubsection*{Canonical link case}
-In the case of a canonical link, the expression $w_i\frac{d\eta_i}{d\mu}$ in the
+When $g$ is a canonical link function
+the expression $w_i\frac{d\eta_i}{d\mu}$ in the
 first term of the sum in Equation~\ref{hsum}
 is constant because in such cases
 $d\eta/d\mu=1/V(\mu)$ and
@@ -704,6 +706,7 @@ Paige\cite{paige}.
 typically solved by the iteratively reweighted least square method
 shown in Algorithm \ref{irls} and defined carefully by Bj\"ork\cite{bjork}...
 
+
 \subsection*{Numerical implementation issues}
 
 cover edge cases here including zero-variance observations (constant rows in $X$)
@@ -714,6 +717,9 @@ Introduce R's rank revealing QR irwls approach.
 SVD-irwls based on algorithm by O'Leary
 
 comparison/examples between R's RRQR-irwls and SVD-irwls
+
+large-scale problems and 1st order solution methods
+
 
 \subsubsection*{Round off error in QR- and SVD-based methods}
 
