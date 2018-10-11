@@ -47,11 +47,8 @@ algorithmic details of the iteratively re-weighted least squares method
 (IRWLS), and emphasizes advantages of using the singular value decomposition
 (SVD) in its implementation. We added background reference material on the SVD.
 From a suggestion by James Blevins, the notation was revised to bring it closer
-to other references, especially~\cite{MN}.  Although nothing here is very
-deep, some details are complicated by a profusion of variables and functions.
-I was inspired by Lamport's great advice~\cite{lamport} to try to
-carefully spell things out very simply, step by step, referring back to
-previously established quantities often.  --Bryan}
+to other references, especially~\cite{MN}.
+--Bryan}
 \end{quote}
 
 \begin{quote}
@@ -233,33 +230,17 @@ Let $X\in\R^{n\times p}$ be a matrix formed from $n$ data observations of $p$
 features (called a model matrix).  Let $y\in\R^n, y\ne 0$ be a vector of $n$
 measurements (called a response vector) and assume that the entries of $y$
 are realizations of a set of $n$ independent but identically-distributed
-(i.i.d.) random variables.  Then the linear system of equations
+(denoted iid) random variables.  Then the linear system of equations
 \begin{equation}\label{linear}
 Xb = y + e
 \end{equation}
 is what we mean when we say ``linear model,'' where a possible solution
 $b\in\R^p$, when one exists, is a vector of model coefficients, and the
-entries of the residual error term $e\in\R^n$ are also i.i.d. 
+entries of the residual error term $e\in\R^n$ are also iid.
 Given a vector $b$ of model
 coefficients, we call the product $Xb$ a {\it predictor} of the response vector
 $y$.  We're leaving important definitions of ``random variable'' and
 ``independent and identically distributed'' to the references.
-
-It's easy to see that if $e=0$, the exactly-specified linear model Equation
-\ref{linear} admits three possibilities for $b$:
-\begin{enumerate}\setlength\itemsep{-0.4em}
-\item No solution for $b$ exists.
-\item A unique solution $b$ exists.
-\item An infinite number of solutions $b$ exist.
-\end{enumerate}
-For instance, in the 2-D case of a two by two matrix $X$ the possible solutions
-correspond to 1) parallel lines; 2) lines intersecting at a point; and
-3) co-incident lines.
-The interesting cases 1 and 3 correspond to situations when
-$\mathrm{rank}(X) < p$.
-Dealing with those interesting cases substantially complicate
-solution implementations, even when $e\ne 0$ but is allwoed to consist
-of i.i.d. entries.
 
 Given a model matrix $X$ and response vector $y$, there are many ways we might
 go about solving for a vector of model coefficients $b$. A particularly
@@ -308,13 +289,15 @@ such minimizers.
 \end{align}
 The columns of $\bar{V}$ for an orthonormal basis of $\R^p$.
 Express the solution $b$ as a linear combination of the column vectors $v_i$,
-$b = \sum_{i=1}^p \gamma_i v_i$ (that is, $\gamma_i = v_i^Tb$). Since $\mathrm{rank}(X)=r$ then
+$b = \sum_{i=1}^p \gamma_i v_i$ (that is, $\gamma_i = v_i^Tb$).
+Since $\mathrm{rank}(X)=r$ then
 $\sigma_{r+1} = \sigma_{r+2} = \cdots = \sigma_p = 0$ and the corresponding
 coefficients $\gamma_i$ may take on any value without affecting the
 residual norm.  The specific choice
-$\gamma_{r+1} = \gamma_{r+2} = \cdots b_p = 0$
+$\gamma_{r+1} = \gamma_{r+2} = \cdots \gamma_p = 0$
 minimizes the norm of any possible solution $b$.
-Then the residual norm in Equation \ref{residual} is minimized by setting the remaining coefficients
+Then the residual norm in Equation \ref{residual} is minimized by setting
+the remaining coefficients
 $v_i^Tb = \gamma_i = (u_i^T y) v_i/ \sigma_i$ for $i=1, 2, \ldots, r$.
 $\square$
 \end{thm}
@@ -358,7 +341,7 @@ references, in particular see~\cite{hastie},\cite{MN}.
 
 \section*{Generalized linear models}
 
-Our notes on generalized linear models closely follow the seminal book
+Our notes on generalized linear models closely follow the book
 ``Generalized Linear Models'' by McCullagh and Nelder~\cite{MN}.  That very
 readable and practical book remains, in our opinion, the best all-around applied
 reference on GLMs and strongly influenced algorithm implementations in the
@@ -376,35 +359,47 @@ coefficient solution vector $\beta\in\R^p$.
 $\eta = g(\mu)$, applied component-wise to the vector $\mu$.
 \end{enumerate}
 The link function $g$ is assumed to be a real-valued monotonic, differentiable
-(and therefore invertible) function.  These notes assume that the random
-component distribution describing the response belongs to a one- or
-two-parameter \emph{exponential family} of probability distributions described
-below. The exponential family covers many widely used and important cases like
-logistic/binomial, Bernoulli, multinomial, exponential, Poisson, Gaussian, and
-others. Limiting our discussion to models that fit into the exponential family,
-despite a superficial mathematical complexity, greatly simplifies many
-details.
+(and therefore invertible) function. If $p=n$ and the matrix $X$ is of full
+rank, then the model can exactly match the $n$ data observations in $y$ and all
+of the variation between observations is consigned to the systematic component
+of the model. Such models are usually \emph{over fit} and rarely generalize
+well to new data, although they have practical utility as seen in the next
+section. When $p=1$ then the model represents a single common $\mu$
+for all $n$ data observations and all of the variation in $y$ is
+consigned to the random component. Most real-world GLMs lie somewhere
+in-between these two extremes.
+
 
 Adding the random component and link function around a basic linear model
-allows generalized linear models to model a wider range of scenarios. In
+lets GLMs model a wider range of scenarios than their OLS cousins. In
 particular, the link function lets us model variables $\mu$ that are restricted
 to intervals, for instance the interval $[0,1]$ useful for modeling binary
 values.  And we can use the random component to pair an appropriate
 distribution with such values (say, a binomial distribution in the case of 0/1
 data). The added modeling flexibility comes with a cost--the link function can
-turn finding the solution to GLMs into a nonlinear problem (despite the
-underlying linear model assumption in the systematic component).
+turn finding the solution of GLMs into a nonlinear problem, despite the
+underlying linear model assumption in the systematic component.
+
+
+These notes assume that the random component distribution describing the
+response belongs to a one- or two-parameter \emph{exponential family} of
+probability distributions described below. The exponential family covers many
+widely used and important cases like logistic/binomial, Bernoulli, multinomial,
+exponential, Poisson, Gaussian, and others. Limiting our discussion to models
+that fit into the exponential family, despite a superficial mathematical
+complexity, greatly simplifies many details.
 
 
 \subsection*{The exponential family of distributions}
 
-The following sections include a lot of math notation and many functions and
+The following sections include a lot of notation and many functions and
 parameters to keep track of. Although a bit complicated, nothing presented here
-is harder than elementary Calculus. We closely follow McCullagh and Nelder's
-exposition~\cite{MN}, but we expand on it in some places to help illuminate key
-ideas.
+is harder than elementary Calculus. For the most part, we very closely follow
+the exposition of McCullagh and Nelder~\cite{MN}, but we expand on it in some
+places to help illuminate key ideas.
 
-The exponential family of distributions can be written as a function
+The exponential family of distributions have probability distributions
+that can be written as a function
 \begin{equation}\label{expfamily}
 f(y; \theta, \phi) = \exp\left(\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \phi)\right),
 \end{equation}
@@ -417,7 +412,7 @@ to the exponential family.
 For instance, let
 $\theta=\mu$, $\phi=\sigma^2$, $b(\theta)=\theta^2/2$, $a(\phi)=\phi$
 and $c(y, \phi) = -\frac{1}{2}(\frac{y^2}{\sigma^2} + \log(2\pi\sigma^2))$.
-Then substituting those values in yields
+Then substituting those values in to Equation~\ref{expfamily} yields
 \begin{align*}
 f(y; \theta, \phi) &=
   \exp\left(\frac{y\mu - \mu^2/2}{\sigma^2} - \frac{1}{2}\left(\frac{y^2}{\sigma^2} + \log(2\pi\sigma^2)\right)\right)\\
@@ -437,28 +432,34 @@ $c(y, \phi)=-\log{(y!)}$. Then
 \begin{align*}
 f(y; \theta, \phi) &=  \exp\left(\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \phi)\right)\\
 &= \exp\left(\frac{y\log\mu - \exp\theta}{1} - \log y!\right)\\
-&= \frac{\exp(y\log\mu - \exp\theta)}{y!}\\
-&= \frac{\exp(y\log\mu - \exp\log\mu)}{y!}\\
+&= {\exp(y\log\mu - \exp\theta)}/{y!}\\
+&= {\exp(y\log\mu - \exp\log\mu)}/{y!}\\
 &= \exp(y\log\mu - \mu)/y!\\
 &= \exp{(-\mu)}\exp{(y\log\mu)}/y!\\
 &= \exp(-\mu)\mu^y/y!\,\,.
 \end{align*}
-Many other distributions are described by the exponential family and can be
-written in the form of Equation \ref{expfamily}.
+Many other distributions are described by the exponential family.
 
-\subsubsection*{The log-likelihood function}
-The function
-\begin{equation}\label{loglik}
-\ell(\theta, \phi; y) = \frac{y\theta - b(\theta)}{a(\phi)} + c(y, \theta)
-\end{equation}
-is the corresponding \emph{log-likelihood} function. In this context the
+\subsubsection*{The log likelihood function}
+If we think of the function $f$ in Equation~\ref{expfamily} as
+a function of parameters $\theta$ and $\phi$ given observed data $y$ then
+the function describes the likelihood of the observations. Its logarithm,
+\begin{equation*}
+\ell(\theta, \phi; y) = \frac{y\theta - b(\theta)}{a(\phi)} + c(y, \phi),
+\end{equation*}
+is called the \emph{log likelihood} function.  In this context the
 function $b(\theta)$ is called the \emph{cumulant function} and $\phi$
-the \emph{dispersion parameter}. The log-likelihood function
-indicates how likely a given observed value $y$ is as a function
-of parameters $\theta$ and $\phi$.  Next we derive a few basic identities that
+the \emph{dispersion parameter}.
+In the usual case where $y$ is a vector
+of $n$ independent observations, the log likelihood function
+sums the individual contributions:
+\begin{equation}\label{loglik}
+\ell(\theta, \phi; y) = \sum_{i=1}^n\frac{y_i\theta_i - b(\theta_i)}{a(\phi)} + c(y, \phi)
+\end{equation}
+Next we derive a few basic identities that
 will be useful later.
 
-Let $\partial\ell/\partial\theta$ be the derivative of the log-likelihood
+Let $\partial\ell/\partial\theta$ be the derivative of the log likelihood
 function with respect to $\theta$ (how much the function changes as
 $\theta$ changes), and similarly $\partial^2\ell/\partial\theta^2$
 its 2nd derivative (how much the derivative function changes as
@@ -513,20 +514,31 @@ is a multiple of the variance function $V(y)$:
 
 
 
+
+
 \subsection*{GLMs and the exponential family}
 
 The last section introduced the random component of generalized linear models
-and corresponding log-likelihood function for the exponential family of
+and corresponding log likelihood function for the exponential family of
 distributions.  This section puts that together with the remaining
 generalizations, the systematic component's linear model $\eta = X\beta$ and
-the link function $\eta=g(\mu)$ (where, again, $\mu$ is simply an alternative
-notation for the expected value of the response vector $E(y)$).
+the link function $\eta=g(\mu)$.
 
 One approach for solving generalized linear models is to find the value of the
-coefficient vector $\beta$ that maximizes the log-likelihood function. Solving
-for such a \emph{maximum-likelihood solution} is the main goal of this section.
+coefficient vector $\beta$ that maximizes the value of the log likelihood
+function in Equation~\ref{loglik}.  Solving for such a \emph{maximum-likelihood
+solution} is the main goal of this section. We can phrase the solution as a
+standard nonlinear least squares problem by recasting the maximum likelihood
+problem in terms of a minimum residual problem using \emph{deviance residuals}.
+
+\subsubsection*{Deviance residuals}
+
+
+
+\subsubsection*{Jacobian}
+
 In order to find a maximum using Calculus, we will need (at least) an
-expression for the derivative of the log-likelihood function with respect to
+expression for the derivative of the log likelihood function with respect to
 each component of the solution $\beta_j$, $\partial{l}/\partial{\beta_j}$.
 
 Writing the $n \times p$ matrix $X$ showing each column as
@@ -537,7 +549,7 @@ and
 \partial\eta/\partial\beta_j = x_j.
 \end{equation}
 
-Then using the chain rule from Calculus, the derivative of the log-likelihood
+Then using the chain rule from Calculus, the derivative of the log likelihood
 function with respect to each component of the solution $\beta_j$ is
 \begin{align}
 \frac{\partial\ell}{\partial\beta_j}
@@ -551,16 +563,33 @@ function with respect to each component of the solution $\beta_j$ is
 &= w\frac{y-\mu}{a(\phi)}\frac{d\eta}{d\mu}x_j,
     &\mbox{(by Equations \ref{bprime} and \ref{w})} \label{dldb}
 \end{align}
-where $w$ is a vector with $n$ elements defined as a multiple of the inverse variance function
-(where division is carried out component-wise):
+where $w$ is defined as a multiple of the inverse variance function:
 \begin{equation}\label{w}
 w = \left(\frac{d\mu}{d\eta}\right)^2 \bigg/ V(\mu).
 \end{equation}
+Since $\eta=g(\mu)$, the term $\frac{d}{d\mu}\eta$ in Equation~\ref{dldb} is
+simply $g'$, the derivative of the link function.  We remark that, in the usual
+case that the response $y$ is a vector of $n$ iid observations and $X$ is an
+$n\times p$ matrix, Equation~\ref{dldb} holds entrywise and defines the 
+$n\times p$ Jacobian matrix of the log likelihood function
+with $ij^{th}$ entry
+\begin{equation}\label{jacobian}
+J(\beta)_{ij} = \frac{\partial\ell_i}{\partial\beta_j}
+         = w_i\frac{y_i-\mu_i}{a(\phi)}\frac{d\eta_i}{d\mu}x_{ij},
+\qquad i=1, 2, \ldots, n,\,\,j=1,2,\ldots,p.
+\end{equation}
+%Assume that the dispersion function $a(\phi)$ is constant with respect to the
+%solution $\beta$. Then the maximum of the log likelihood function $\ell$ with
+%respect to each solution component $\beta_j$ for $j=1, 2, \ldots, p$ occurs when
+%\begin{equation}\label{max_loglik}
+%\sum_{i=1}^n w_i(y-\mu)_i\frac{d}{d\mu}\eta_ix_{ij} = 0.
+%\end{equation}
+
 
 \subsubsection*{Canonical link functions}
 Recall that
 the link function relates $\eta$ and $\mu$ by $\eta=g(\mu)$,
-and thus $d\eta/d\mu = g'(\mu)$. Choosing a special \emph{canonical link function}
+and therefore also their derivatives $d\eta/d\mu = g'(\mu)$. Choosing a special \emph{canonical link function}
 results in a number of simplifications. Chief among them for our
 purposes, a canonical link connects $d\eta/d\mu$ to the variance function by
 \begin{equation}
@@ -574,17 +603,14 @@ w &= \left(\frac{d\mu}{d\eta}\right)^2 \bigg/ V(\mu) \nonumber \\
 &= V^2(\mu) / V(\mu) \nonumber \\
 &= V(\mu)\qquad\mbox{(canonical link case)}.  \label{W_canonical}
 \end{align}
-Assume that the dispersion function $a(\phi)$ is constant with respect to the
-solution $\beta$. Then the maximum of the log-likelihood function $\ell$ with
-respect to each solution component $\beta_j$ for $j=1, 2, \ldots, p$ occurs when
-\begin{equation}\label{max_loglik}
-\sum_{i=1}^n w_i(y-\mu)_i\frac{d}{d\mu}\eta_ix_{ij} = 0.
-\end{equation}
-Since $\eta=g(\mu)$, the term $\frac{d}{d\mu}\eta$ is
-simply $g'$, the derivative of the link function.
+
 
 
 \subsection*{Maximum likelihood solutions based on first-order approximations}
+
+Jacobian :q
+:q
+
 
 Assemble entries of $w$ and $g'$ along the diagonal of an
 $n\times n$ diagonal matrix $W$:
@@ -614,7 +640,7 @@ XXX EXAMPLE XXX
 
 We can do better than the quasi-Newton solution in the last section.  Because
 we restricted our problems to the exponential family, we can formulate an
-analytic representation of the second derivatives of the log-likelihood
+analytic representation of the second derivatives of the log likelihood
 function to form a Hessian matrix. That knowledge enables us to employ solution
 methods using second-order (quadratic) approximations like Newton's
 method--such methods have more favorable convergence properties (faster, more
@@ -681,7 +707,7 @@ H = X^T W X.
 \end{equation}
 
 With an expression for the gradient from Equation~\ref{gradient} and Hessian
-from Equation~\ref{Hessian} of the log-likelihood function, we have all we need
+from Equation~\ref{Hessian} of the log likelihood function, we have all we need
 to implement a second order solution method. The next example uses R's
 \verb+nlm+ function to find the maximum likelihood GLM solution using Newton's
 method.

@@ -1,19 +1,27 @@
-# Input: X an n by p model matrix,
-#        y a response vector of length n,
-#        family is the link function family,
-#        maxit integer number of maximum number of IRLS iterations,
-#        tol positive convergence tolerance,
-#        stol positive numerical condition tolerance,
-#        singular.ok if FALSE a numerically-singular fit stops with error,
-#        weights vector of observation weights,
-#        reg.method indicates regularization approach:
-#                   "column projection" follows R's GLM approach
-#                   "minimum norm" finds the LS solution of minimal norm,
-#        LAPACK if FALSE use R's column-ordered subset selection when
-#               reg.method == "column projection" otherwise use default
-#               LAPACK pivots.
-# Output: A list with model coefficients b, number if IRLS iterations,
-#         and column pivoting indices.
+#' Fitting Generalized Linear Models
+#'
+#' Similar to \code{glm.fit} but uses the SVD to detect ill-conditioned
+#' problems and conducts IRWLS in projected subspace for efficiency.
+#'
+#' @param X an n by p real-valued dense model matrix
+#' @param y a response vector of length n
+#' @param family a family function or the result of a call to a family function
+#' @param maxit integer number of maximum number of IRWLS iterations
+#' @param tol IRWLS positive convergence tolerance
+#' @param stol positive numerical condition tolerance
+#' @param singular.ok if FALSE a numerically-singular fit stops with error
+#' @param weights vector of observation weights
+#' @param reg.method indicates regularization approach: 'column projection' follows R's GLM approach; 'minimum norm' finds the LS solution of minimal norm.
+#' @param LAPACK if FALSE use R's column-ordered subset selection when \code{reg.method == 'column projection'} otherwise use default LAPACK pivots.
+#' @return A list with model coefficients b, number if IRWLS iterations, and column pivoting indices.
+#' Returns a list with entries:
+#' \describe{
+#'   \item{b:}{ model coefficients}
+#'   \item{iterations:}{ number of IRWLS iterations}
+#'   \item{rank:}{ rank of model matrix}
+#'   \item{pivot:}{ model matrix column pivot}
+#' }
+#' @seealso \code{\link{glm.fit}}
 glm.svd =
 function(X, y, family=binomial, maxit=25, tol=1e-10, stol=1e-10,
          singular.ok=TRUE, weights,
