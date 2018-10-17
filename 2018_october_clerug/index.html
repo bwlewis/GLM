@@ -1,0 +1,619 @@
+<html>
+<title>Simple Slide Template -- B. W. Lewis</title>
+<body style="margin: 80px;">
+
+<!-- BEGIN SLIDES -->
+
+
+<div class="slide">
+<center>
+<br/><br/>
+<h1>Generalized Linear Models</h1>
+<h3>their history and implementation in R</h3>
+</center>
+</div>
+
+
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<img src="book.jpg"/>
+<p>
+<br/><br/><br/><br/><br/>
+Motivated by research for our upcoming book.
+</div>
+</div>
+
+
+<div class="slide">
+<br/>
+<h2>What does <q>linear model</q> mean?</h2>
+</div>
+
+<div class="slide">
+<br/>
+<h2>What does <q>linear model</q> mean?</h2>
+<br/>
+Changes in estimated values (y) are uniformly proportional to changes in data (x) values.
+</div>
+
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<img src="linear.jpg" width="800px"/>
+<p>
+<br/><br/><br/><br/><br/>
+Linear
+</div>
+</div>
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<img src="not_linear.jpg" width="800px"/>
+<p>
+<br/><br/><br/><br/><br/>
+Not linear
+</div>
+</div>
+
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<div class="double" style="height: -webkit-fill-available;">
+<br/><br/><br/><br/><br/>
+<img src="eq1.png"/>
+</div>
+<div style="vertical-align: middle;">
+<br/><br/><br/><br/>
+Expression for each estimated value of y.
+</div>
+</div>
+</div>
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<div class="extra" style="height: -webkit-fill-available;">
+<br/><br/><br/>
+<img src="eq2.png"/>
+</div>
+<div style="vertical-align: middle;">
+<br/><br/><br/><br/>
+Now with all of the data points and estimates...
+</div>
+</div>
+</div>
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<div class="double" style="height: -webkit-fill-available;">
+<br/><br/><br/><br/><br/>
+<img src="eq3.png"/>
+</div>
+<div style="vertical-align: middle;">
+<br/><br/><br/><br/><br/>
+...as a matrix equation.
+</div>
+</div>
+</div>
+
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<img src="whichlinear.jpg" width="800px"/>
+<p>
+<br/><br/><br/><br/>
+OK, so these are all linear models.
+<br/><br/>
+But <i>which one</i> to use?
+</div>
+</div>
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<img src="ols.jpg" width="800px"/>
+<p>
+<br/>
+Ordinary least squares (OLS)
+<br/><br/>
+Minimize the sum of the <i>squares</i> of each dotted line distance.
+<div class="double"><img src="eq4.png"/></div>
+</div>
+</div>
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<center>
+<img src="cfgauss.jpg" width="400px"/>
+<img src="andreymarkov.jpg" width="400px"/>
+</center>
+<p>
+<br/><br/><br/>
+C. F. Gauss, and then again about 100 yeats later Andrey Markov showed that the OLS estimate yields
+in some sense the <i>best</i> estimate of &beta;.
+<br/><br/>
+Gauss was extending ideas of Laplace and Legendre.
+</div>
+</div>
+
+<div class="slide">
+<br/><br/><br/><br/>
+<h2>How to solve for the ordinary least squares &beta;</h2>
+</div>
+
+<div class="slide">
+<h2>Orthonormal bases</h2>
+<div class="double">
+<img src="eq5.png"/>
+</div>
+</div>
+
+<div class="slide">
+<h2>QR Decomposition</h2>
+<div class="double">
+<img src="eq6.png"/>
+</div>
+</div>
+
+<div class="slide">
+<h2>QR Decomposition and OLS</h2>
+<div class="double">
+<img src="eq7.png"/>
+</div>
+</div>
+
+<div class="slide">
+<h2>QR Decomposition and OLS</h2>
+<div class="double">
+<img src="eq8.png"/>
+</div>
+</div>
+
+<div class="slide">
+<b>In R:</b>
+<xmp>set.seed(1)
+X = matrix(rnorm(20), nrow=10)
+y = rnorm(10)
+coef(lm.fit(X, y))
+
+#        x1         x2 
+# -0.7443540  0.3079946 
+
+
+
+qrx = qr(X)
+backsolve(qr.R(qrx),  t(qr.Q(qrx)) %*% y)
+
+#            [,1]
+# [1,] -0.7443540
+# [2,]  0.3079946
+
+</xmp>
+</div>
+
+
+<!--         GLM            -->
+
+<div class="slide">
+<br/><br/><br/>
+<h2>OK, but what does <q>generalized linear model</q> mean?</h2>
+</div>
+
+<div class="slide">
+<br/><br/>
+<div class="double">
+<img src="eq9.png"/>
+</div>
+</div>
+
+<div class="slide">
+<br/>
+<h2>Why this complication?</h2>
+<br/>
+Consider for example binary 0/1 or yes/no response data.
+<br/><br/>
+The link function lets us constrain results to an interval.
+</div>
+
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<img src="logistic.jpg" width="800px"/>
+<p>
+<br/>
+Logistic versus a linear fit for Wikipedia study-hours example.
+<xmp style="font-size: 18pt;">
+x=c(0.5,0.75,1,1.25,1.5,1.75,1.75,2,2.25,2.5,2.75,
+    3,3.25,3.5,4,4.25,4.5,4.75,5,5.5)
+y=c(0,0,0,0,0,0,1,0,1,0,1,0,1,0,1,1,1,1,1,1)
+
+plot(x,y,xlab="Hours of study",
+         ylab="Probability of passing")
+grid()
+abline(coef(lm.fit(cbind(1, x), y)), col=4, lty=2)
+
+l = coef(glm.fit(cbind(1, x), y, family=binomial()))
+xx = seq(0, 6, length.out=100)
+p = 1/(1 + exp(-(l[2]*xx + l[1])))
+
+lines(xx, p, col=2, lwd=2)
+</xmp>
+<p style="font-size: 12pt;">https://en.wikipedia.org/wiki/Logistic_regression</p>
+</div>
+</div>
+
+<div class="slide">
+<br/><br/><br/>
+In practice, the probability distributions of the random component are limited
+to the <i>exponential family</i> of distributions.
+<br/><br/><br/>
+That makes a lot of the GLM implementation details simpler.
+</div>
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<center>
+<img src="fisher.jpeg" width="300px"/>
+<img src="nelder.jpg" width="400px"/>
+<img src="mccullagh.jpg" width="300px"/>
+</center>
+<p>
+<br/><br/><br/>
+It was Fisher who first formulated this idea in 1935. Nelder came up with the
+name 'generalized linear model' in 1972.
+Nelder and Peter McCullagh wrote the seminal book <q>Generalized Linear Models</q> in 1983.
+</div>
+</div>
+
+<div class="slide">
+<br/><br/><br/><br/>
+P. J. Green, Wedderburn, Cox, Breslow, and others made important extensions beyond the basic
+exponential family and to cover survival analysis and other related linear models.
+</div>
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<br/><br/>
+<center>
+<img src="ihaka.jpg" width="300px"/>
+&nbsp;
+<img src="ripley.jpg" width="400px"/>
+</center>
+<p>
+<br/><br/><br/><br/>
+Ross Ihaka, Brian Ripley and others implemented the Nelder-McCullagh and other ideas carefully in R's
+<b>glm</b> family of routines.
+<br/><br/>
+</div>
+</div>
+
+<div class="slide">
+<br/>
+<h2>How does R solve generalized linear models?</h2>
+</div>
+<div class="slide">
+<br/>
+<h2>How does R solve generalized linear models?</h2>
+<br/><br/>
+Using a variation of Newton's method (nonlinear part)...
+<br/><br/>
+and a special QR decomposition (linear part).
+</div>
+
+
+
+<div class="slide">
+<h3>The gist of solving GLMs.</h3>
+<ol>
+<li>Formulate a minimum deviance residual problem (a nonlinear version of least squares that corresponds to a maximum likelihood solution).
+<li>Minimizing the deviance residual is a nonlinear least squares problem. Calculus!
+<li>Find where the first derivative is zero and iterate -- Gradient descent.
+<li>Alternatively use a quasi-Newton solver.
+<li>Use a quadratic approximation (1st and 2nd derivatives)  -- Newton's method.
+<li>Green, Nelder, McCullagh noticed that in <i>special cases</i> Newton's method is a weighted least squares problem -- IRWLS.
+</ol>
+(IRWLS = iteratively re-weighted least squares)
+</div>
+
+<div class="slide">
+<br/>
+<h3>What R does</h3>
+<ol>
+<li>Always applies IRWLS (probably OK).
+<li>Use a specially-modified rank-revealing QR to solve the approximate linear problem in each step.
+</div>
+
+<div class="slide">
+<xmp style="font-size: 24pt;">irls_basic =
+function(X, y, family=binomial(), maxit=25, tol=1e-08)
+{
+  devold = 0
+  eta    = rep(0, length(y))
+  w      = rep(1, nrow(X))
+  mu     = family$linkinv(eta)
+  dev    = sum(family$dev.resids(y, mu, w))
+  for(j in 1:maxit)
+  {
+    dmu_deta = family$mu.eta(eta)
+    z        = eta + (y - mu) / dmu_deta
+    W        = sqrt(family$variance(mu))
+    beta     = qr.solve(W * X, W * z)
+    eta      = drop(X %*% beta)
+    mu       = family$linkinv(eta)
+    dev      = sum(family$dev.resids(y, mu, w))
+    if(abs(dev - devold) / (0.1 + abs(dev)) < tol) break
+    devold = dev
+  }
+  list(coefficients=beta,iterations=j)
+}
+</xmp>
+</div>
+
+<div class="slide">
+<div style="column-count: 2; column-gap: 240px; column-rule-style: solid; column-rule-width: 1px;">
+<div style="height: -webkit-fill-available;">
+<br/><br/>
+<center>
+<img src="oleary.jpg" width="500px"/>
+</center>
+</div>
+<div style="height: -webkit-fill-available;">
+<br/><br/>
+<br/><br/>
+Dianne O'Leary wrote a paper in 1990 that showed you can run the iterations in the projected space.
+This is more efficient.
+</div>
+</div>
+</div>
+
+
+
+<div class="slide">
+<xmp style="font-size: 20pt;">irls_qrnewton =
+function(X, y, family=binomial(), maxit=25, tol=1e-08)
+{
+  devold = 0
+  eta  = rep(0, length(y))
+  w = rep(1, nrow(X))
+  mu = family$linkinv(eta)
+  dev = sum(family$dev.resids(y, mu, w))
+  QR = qr(X)
+  Q  = qr.Q(QR)
+  R  = qr.R(QR)
+  for(j in 1:maxit)
+  {
+    dmu_deta = family$mu.eta(eta)
+    z      = eta + (y - mu) / dmu_deta
+    W      = drop(family$variance(mu))
+    C   = chol(crossprod(Q, W*Q))
+    eta = Q %*% backsolve(C, forwardsolve(t(C), crossprod(Q,W*z)))
+    mu = family$linkinv(eta)
+    dev = sum(family$dev.resids(y, mu, w))
+    if(abs(dev - devold) / (0.1 + abs(dev)) < tol) break
+    devold = dev
+  }
+  beta = backsolve(R, crossprod(Q,eta))
+  list(coefficients=beta,iterations=j)
+}
+</xmp>
+</div>
+
+
+<div class="slide">
+<h3>Simple example</h3>
+<br/>
+<xmp >
+logistic  = glm.fit(cbind(1, x), y, family=binomial())
+irlsqr    = irls_qrnewton(cbind(1, x), y, family=binomial())
+irlsbasic = irls_basic(cbind(1, x), y, family=binomial())
+
+rbind(coef(logistic), coef(irlsbasic), coef(irlsqr))
+
+# [1,] -4.077713 1.504645
+# [2,] -4.077713 1.504645
+# [3,] -4.077713 1.504645
+</xmp>
+</div>
+
+
+<div class="slide">
+<br/>
+<h2>What can go wrong?</h2>
+<br/>
+Rank-deficiency in X
+<ul>
+<li> Infinite solutions -- all points on the same line,
+<li> or, no solution exists.
+<li> Or worse, sensitivity to small errors in y.
+</ul>
+</div>
+
+<div class="slide">
+<xmp>source("glm.svd.r")
+n = 1000
+p = 30
+
+set.seed(1)
+X = matrix(rnorm(n*p), n)
+X[sample(n*p, n*p*0.5)] = 0
+X = X %*% diag(exp(-1.3*seq_len(p)))
+X[,15] = rowSums(X[,-15]) / 30
+beta = rep(0, p)
+beta[seq_len(3)] = 1
+y = X %*% beta
+g = glm.fit(as.matrix(X), as.vector(y), family=gaussian(), singular.ok=TRUE)
+s = glm.svd(as.matrix(X), y, family=gaussian)
+cat("glm rel error ",drop(sqrt(crossprod(na.omit(coef(g) - beta)))), "\n")
+cat("irls rel error ",drop(sqrt(crossprod(na.omit(coef(s) - beta)))), "\n")
+
+# glm rel error  5.23984 
+# irls rel error  2.233463e-07 
+</xmp>
+</div>
+
+
+<div class="slide">
+<xmp># Here, X_3 = X_4 = X_5 and X_3 is a component of the solution
+set.seed(1)
+X = matrix(rnorm(n*p), n)
+X[sample(n*p, n*p*0.5)] = 0
+X[,4] = X[,3]
+X[,5] = X[,3]
+beta = rep(0, p)
+beta[seq_len(3)] = 1
+y = X %*% beta
+g = glm.fit(as.matrix(X), as.vector(y), family=gaussian(), singular.ok=TRUE)
+cat("glm rel error ",drop(sqrt(crossprod(na.omit(coef(g) - beta)))), "\n")
+
+# glm rel error  3.393743e-16
+</xmp>
+</div>
+
+<div class="slide">
+<xmp># Here, X_3 = X_4 = X_5 and X_5 is a component of the solution, whoops!
+# Any one of these is as good as the other. R picks in the order that
+# the columns appear.
+set.seed(1)
+X = matrix(rnorm(n*p), n)
+X[sample(n*p, n*p*0.5)] = 0
+X[,4] = X[,3]
+X[,5] = X[,3]
+beta = rep(0, p)
+beta[1] = 1
+beta[2] = 1
+beta[5] = 1
+y = X %*% beta
+g = glm.fit(as.matrix(X), as.vector(y), family=gaussian(), singular.ok=TRUE)
+cat("glm rel error ",drop(sqrt(crossprod(na.omit(coef(g) - beta)))), "\n")
+
+# glm rel error  1
+</xmp>
+</div>
+
+
+<div class="slide">
+<br/>
+<h3>Advice</h3>
+<br/><br/>
+Brian Ripley made it so that <b>glm</b> displays  NAs when something doesn't look right.
+Heed that, and when you see it consider using either a minimum norm solution or lasso.
+</div>
+
+
+<div class="slide">
+<br/>
+<h3>What's next for me</h3>
+<br/>
+<ul>
+<li>The <b>glm.svd</b> reference implementation.
+<li>Better RRQR implementations using the Chan/Gragg/Reichel algorithm.
+<li>More examples using alternatives to IRWLS.
+</ul>
+<a href="https://github.com/bwlewis/GLM">https://github.com/bwlewis/GLM</a> (not yet up to date)
+</div>
+
+<!--END OF SLIDES-->
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+.slide {
+  font-family: arial;
+  font-size: 40pt;
+  font-weight: 1800;
+  width: "100%";
+}
+xmp {
+  font-family: monospace;
+  font-size: 28pt;
+  background-color: LightBlue;
+}
+.double{
+  display: inline-block;
+}
+.double img{
+  width: 150%;
+}
+.extra{
+  display: inline-block;
+}
+.extra img{
+  width: 130%;
+}
+
+
+@media print {
+.slide { 
+    page-break-before: always;
+  }
+}
+@page { size: landscape; }
+</style>
+
+<div class="buttons" style="position:fixed; bottom: 20px;">
+  <button onclick="plusDivs(-1)">&#10094;</button>
+  <button onclick="plusDivs(1)">&#10095;</button>
+  <button onclick="printSlides()">print</button>
+</div>
+<div id="pagenumber" style="position:fixed; bottom: 20px; right: 20px;">1</div>
+
+<script>
+var slideIndex = 1;
+document.addEventListener("keydown", ki, false);
+
+function ki(e) {
+  var keyCode = e.keyCode;
+  if(keyCode==39) {
+    plusDivs(1);
+  }
+  if(keyCode==37) {
+    plusDivs(-1);
+  }
+  if(keyCode==80) {
+    printSlides();
+  }
+  if(keyCode==72) {
+    hideButtons();
+  }
+}
+showDivs(slideIndex);
+
+function hideButtons() {
+  var x = document.getElementsByClassName("buttons");
+  if(x[0].style.display == "none") x[0].style.display = "block"
+  else x[0].style.display = "none";
+}
+
+function plusDivs(n) {
+  showDivs(slideIndex += n);
+}
+
+function showDivs(n) {
+  var i;
+  var x = document.getElementsByClassName("slide");
+  if (n > x.length) {slideIndex = 1}    
+  if (n < 1) {slideIndex = x.length}
+  for (i = 0; i < x.length; i++) {
+     x[i].style.display = "none";  
+  }
+  x[slideIndex - 1].style.display = "block";  
+  var y = document.getElementById("pagenumber");
+  y.innerHTML = slideIndex + "/" + x.length;
+}
+
+function printSlides() {
+  var i;
+  var y = document.getElementById("pagenumber");
+  y.innerHTML = "";
+  var x = document.getElementsByClassName("slide");
+  for (i = 0; i < x.length; i++) {
+     x[i].style.display = "none";  
+  }
+  for (i = 0; i < x.length; i++) {
+     x[i].style.display = "block";  
+  }
+  window.print();
+  for (i = 0; i < x.length; i++) {
+     x[i].style.display = "none";  
+  }
+  x[slideIndex - 1].style.display = "block";  
+}
+</script>

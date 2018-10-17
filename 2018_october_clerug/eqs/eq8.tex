@@ -1,0 +1,17 @@
+\documentclass[convert={density=300,outext=.png}]{standalone}
+\usepackage{amsmath}
+\begin{document}
+
+\begin{minipage}[t]{0.3\textwidth}
+\begin{align*}
+\min_\beta\|X\beta - y\|^2 &= \min_\beta\|QR\beta- QQ^Ty + \tilde{Q}\tilde{Q}^Ty\|^2\\
+&= \min_\beta\|QR\beta- QQ^Ty\|^2 + \|\tilde{Q}\tilde{Q}^Ty\|^2\\
+&\\
+&= \min_\beta\|R\beta- Q^Ty\|^2 + \|\tilde{Q}\tilde{Q}^Ty\|^2.
+\end{align*}
+\end{minipage}
+
+
+
+
+\end{document}
