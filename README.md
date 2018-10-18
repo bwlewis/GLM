@@ -6,7 +6,7 @@ See our old notes on this project at: http://bwlewis.github.io/GLM.
 Very revised and updated notes are in process as of October, 2018.
 
 
-Here are some slides from a talk at the Cleveland R User Group: https://bwlewis.github.io/October_2018_CLERUG.html
+Here are some slides from a talk at the Cleveland R User Group: https://bwlewis.github.io/GLM/October_2018_CLERUG.html
 
 Our current experimental reference SVD-based GLM implementation, based in turn
 on Dianne O'Leary's QR implementation from 1990, can be found here:
